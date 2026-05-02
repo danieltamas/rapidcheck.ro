@@ -34,3 +34,29 @@ Follow-ups filed for the orchestrator:
 2. `scripts/gen-icons.ts` to emit the green/gray/red × 16/32/48 PNGs.
 3. `scripts/package.ts` to produce the Chrome zip.
 4. Firefox v0.2 task: re-enable `browser_specific_settings.gecko`, `web-ext`, `addons-linter`, Playwright Firefox project, `.xpi` packaging.
+
+---
+
+## 2026-05-02 — Orchestrator: merged Track 1 to main
+
+**Verdict:** reviewer PASS, 0 blockers.
+**Squash commit:** `bcafd63`
+**Source branch:** `job/v0.1-foundation/scaffold-monorepo` (7 worker commits) + reviewer's REVIEW report
+**Post-merge gate on `main`:**
+- `bun install` → 131 packages, 3.0s
+- `bun pm ls | grep -ci node-forge` → 0
+- `bun run check` → exit 0
+- `bun test` → 14 pass / 0 fail / 30 expects
+- `bun run build` → 63ms; `dist/extension/` produced with manifest + background.js + content.js + popup.{html,js,css} + 9 icon PNGs
+- `bun run validate-packs` → exit 0
+
+**Cleanup:** deleted task branch, stale `worktree-agent-*` alias branch, removed `.claude/worktrees/agent-a8683547/`.
+
+**Chrome smoke load:** deferred to manual orchestrator/owner step (`chrome://extensions` → Load unpacked → `dist/extension/`). Static manifest validation passed both worker and reviewer review.
+
+**Filed follow-up tasks (next sprint):**
+- `02-invariant-lint-rules.md` — custom ESLint plugin for the five invariants
+- `03-icon-generation.md` — real branded icons from SVG source
+- `04-package-script.md` — `scripts/package.ts` (Chrome zip) + bundle-size assertion
+- `05-playwright-e2e-bootstrap.md` — Chromium-only Playwright + DOM-integrity + network-audit specs
+- Tracks 2 / 3 / 4 / 5 — now unblocked, can run in parallel per CLAUDE.md isolation rules
