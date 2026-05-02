@@ -160,6 +160,7 @@ main
 3. **Workers NEVER merge.** They commit to their task branch and report done.
 4. **Orchestrator merges task → group** only after reviewer PASS, one task at a time, sequentially.
 5. **Orchestrator merges group → main** only after ALL tasks in the group are merged and tested.
+6. **Pre-merge worktree cleanliness gate (MANDATORY).** Before squash-merging any task branch, the orchestrator MUST verify the worker's worktree is clean: `cd .claude/worktrees/<id> && git status --porcelain`. If output is non-empty, the worker has uncommitted changes that the squash will silently drop — STOP, copy uncommitted files into a fixup commit on the task branch, then re-merge. **The reviewer MUST also verify worktree cleanliness before running tests** — otherwise tests run against uncommitted code and PASS verdicts are unreliable. This rule exists because on 2026-05-02 a Track 2 squash dropped 35 lines from `lookalike.ts` (the SLD-prefix suffix-attack branch) — worker forgot to commit, reviewer ran tests against uncommitted file, PASS reported, main shipped broken.
 
 #### Concurrent Worker Rules
 

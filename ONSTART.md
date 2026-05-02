@@ -94,6 +94,7 @@ git branch --show-current  # VERIFY
 - [ ] No `any` types
 - [ ] Conventional commit messages, no `Co-Authored-By`
 - [ ] Tests pass in Chrome **and** Firefox
+- [ ] **`git status --porcelain` is empty before declaring DONE.** Uncommitted work is invisible to the squash-merge — anything not committed gets silently dropped, then tests fail on `main` even though they passed in your worktree. This is a process killer; never report DONE with a dirty worktree.
 
 ---
 
@@ -221,6 +222,7 @@ in Chrome and Firefox. Write a REVIEW report. You do NOT modify code or commit.
 Worker's branch: `{branch}` in worktree `.claude/worktrees/{branch}-review`.
 
 ## Hard Checks (any failure = REJECT)
+- [ ] **Worker's worktree is clean** — `cd .claude/worktrees/<id> && git status --porcelain` returns empty. If non-empty, the worker has uncommitted changes that won't make it into the squash-merge. REJECT and ask the worker to commit before re-review.
 - [ ] Five invariants hold (DOM, form data, remote code, network, escape hatch)
 - [ ] Closed shadow root
 - [ ] No new host_permissions without orchestrator approval
