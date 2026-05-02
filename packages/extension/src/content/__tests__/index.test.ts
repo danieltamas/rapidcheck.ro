@@ -11,13 +11,18 @@
  * The script's behaviour we care about:
  *   - On `verified` status + matching pack + matching route → shadow host
  *     appended to <body>, persona-adapted Preact app mounted inside the
- *     closed shadow root.
+ *     closed shadow root, with full-viewport positioning.
  *   - On `unknown` / `lookalike` / null status → no shadow host appended,
- *     `documentElement.outerHTML` stays byte-equal.
+ *     `documentElement.outerHTML` stays byte-equal (modulo the documented
+ *     overflow toggle which is only set when overlay is actually visible).
  *   - On verified but no matching pack → no shadow host appended.
  *   - Persona switch via `storage.onChanged` → re-renders inside the same
  *     shadow root (no DOM churn).
- *   - showOriginal toggle via `storage.onChanged` → flips host.style.display.
+ *   - extensionEnabled / showOriginal toggle via `storage.onChanged` →
+ *     flips host display + restores documentElement.style.overflow.
+ *   - v0.1.1: shadow host has full-viewport overlay styles applied.
+ *   - v0.1.1: documentElement.style.overflow is locked when overlay shown,
+ *     restored to the original value when overlay hidden.
  */
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'bun:test';
@@ -60,29 +65,25 @@ beforeAll(() => {
 let stub: ChromeContentStub;
 
 beforeEach(() => {
-  // Reset the document and module cache so each import re-runs the IIFE.
   document.body.innerHTML = '<h1>Bun venit pe ANAF</h1>';
+  // Reset documentElement inline overflow between tests so the lock helper
+  // sees a fresh slate. (We assert against this to ensure no leak between
+  // tests.)
+  document.documentElement.style.overflow = '';
   // Force happy-dom URL to root path so the route matcher finds `^/$`.
-  // happy-dom's location is mutable via `window.history.replaceState`.
   window.history.replaceState(null, '', '/');
 });
 
 afterEach(() => {
   uninstallChromeContentStub();
   document.body.innerHTML = '';
-  // Drop the script from the module cache so the next import re-runs the IIFE.
-  // Bun's require cache key is the resolved file path; for ESM under bun:test
-  // we exploit `Loader.cache` clearing via dynamic import + bust.
-  // The simplest portable approach is to use a query-string cache buster on
-  // each dynamic import in the test below.
+  document.documentElement.style.overflow = '';
 });
 
 function makeResponder(replies: Reply[]): (req: Request) => Reply | undefined {
   return (req) => {
     const reply = replies.shift();
     if (!reply) return undefined;
-    // Sanity: keep the reply matched to the request shape so tests fail loud
-    // if the script's order changes silently.
     if (req.type === 'get-status' && reply.type !== 'get-status:reply') return undefined;
     if (req.type === 'load-pack' && reply.type !== 'load-pack:reply') return undefined;
     return reply;
@@ -90,13 +91,12 @@ function makeResponder(replies: Reply[]): (req: Request) => Reply | undefined {
 }
 
 async function runContentScript(): Promise<void> {
-  // Cache-bust query so each call re-evaluates the IIFE.
   const bust = String(Date.now()) + String(Math.random());
   await import(`../index.js?bust=${bust}`);
-  // Two microtasks for the get-status + load-pack chain to resolve.
-  await new Promise<void>((r) => queueMicrotask(r));
-  await new Promise<void>((r) => queueMicrotask(r));
-  await new Promise<void>((r) => queueMicrotask(r));
+  // Microtasks for the get-status + load-pack + render chain to resolve.
+  for (let i = 0; i < 6; i++) {
+    await new Promise<void>((r) => queueMicrotask(r));
+  }
 }
 
 describe('content script — exits cleanly when status is unknown', () => {
@@ -108,9 +108,10 @@ describe('content script — exits cleanly when status is unknown', () => {
     await runContentScript();
     expect(document.querySelector('#onegov-root')).toBeNull();
     expect(document.documentElement.outerHTML).toBe(before);
-    // Sent exactly one message.
     expect(stub.messages).toHaveLength(1);
     expect(stub.messages[0]?.type).toBe('get-status');
+    // Document scroll lock NOT applied on early exit.
+    expect(document.documentElement.style.overflow).toBe('');
   });
 });
 
@@ -188,8 +189,6 @@ describe('content script — happy path', () => {
     expect(host).not.toBeNull();
     if (!host) return;
     expect(host.dataset['onegov']).toBe('1');
-    // Closed shadow root → `host.shadowRoot` returns null. happy-dom matches
-    // this contract.
     expect(host.shadowRoot).toBeNull();
   });
 
@@ -219,7 +218,76 @@ describe('content script — happy path', () => {
   });
 });
 
-describe('content script — escape hatch', () => {
+describe('content script — full-viewport overlay (v0.1.1)', () => {
+  it('applies position:fixed inset:0 z-index max isolation:isolate', async () => {
+    stub = installChromeContentStub(
+      makeResponder([
+        { type: 'get-status:reply', status: VERIFIED_STATUS },
+        { type: 'load-pack:reply', pack: SAMPLE_PACK },
+      ]),
+    );
+    await runContentScript();
+    const host = document.getElementById('onegov-root') as HTMLDivElement | null;
+    expect(host).not.toBeNull();
+    if (!host) return;
+    // Each style is set via setProperty(..., 'important'). happy-dom exposes
+    // them via getPropertyValue and getPropertyPriority.
+    expect(host.style.getPropertyValue('position')).toBe('fixed');
+    expect(host.style.getPropertyPriority('position')).toBe('important');
+    expect(host.style.getPropertyValue('inset')).toBe('0');
+    expect(host.style.getPropertyValue('z-index')).toBe('2147483647');
+    expect(host.style.getPropertyValue('isolation')).toBe('isolate');
+  });
+
+  it('uses an opaque background so the page is visually replaced', async () => {
+    stub = installChromeContentStub(
+      makeResponder([
+        { type: 'get-status:reply', status: VERIFIED_STATUS },
+        { type: 'load-pack:reply', pack: SAMPLE_PACK },
+      ]),
+    );
+    await runContentScript();
+    const host = document.getElementById('onegov-root') as HTMLDivElement | null;
+    expect(host).not.toBeNull();
+    if (!host) return;
+    expect(host.style.getPropertyValue('background')).toBe('#ffffff');
+  });
+
+  it('locks documentElement scroll while overlay is visible', async () => {
+    expect(document.documentElement.style.overflow).toBe('');
+    stub = installChromeContentStub(
+      makeResponder([
+        { type: 'get-status:reply', status: VERIFIED_STATUS },
+        { type: 'load-pack:reply', pack: SAMPLE_PACK },
+      ]),
+    );
+    await runContentScript();
+    expect(document.documentElement.style.overflow).toBe('hidden');
+  });
+
+  it('restores documentElement.style.overflow when overlay is hidden', async () => {
+    document.documentElement.style.overflow = 'auto'; // simulate page default
+    stub = installChromeContentStub(
+      makeResponder([
+        { type: 'get-status:reply', status: VERIFIED_STATUS },
+        { type: 'load-pack:reply', pack: SAMPLE_PACK },
+      ]),
+    );
+    await runContentScript();
+    // Locked.
+    expect(document.documentElement.style.overflow).toBe('hidden');
+
+    // Toggle off via the new extensionEnabled key.
+    stub.fireStorageChanged({
+      extensionEnabled: { newValue: false, oldValue: true },
+    });
+    // Settle async readSettings round-trip.
+    for (let i = 0; i < 4; i++) await new Promise<void>((r) => queueMicrotask(r));
+    expect(document.documentElement.style.overflow).toBe('auto');
+  });
+});
+
+describe('content script — escape hatch (legacy showOriginal)', () => {
   it('hides the host when showOriginal flips to true', async () => {
     stub = installChromeContentStub(
       makeResponder([
@@ -231,17 +299,15 @@ describe('content script — escape hatch', () => {
     const host = document.getElementById('onegov-root') as HTMLDivElement | null;
     expect(host).not.toBeNull();
     if (!host) return;
-    expect(host.style.display).toBe('');
+    expect(host.style.getPropertyValue('display')).toBe('block');
 
-    stub.fireStorageChanged({
-      showOriginal: { newValue: true, oldValue: false },
-    });
-    expect(host.style.display).toBe('none');
+    stub.fireStorageChanged({ showOriginal: { newValue: true, oldValue: false } });
+    for (let i = 0; i < 4; i++) await new Promise<void>((r) => queueMicrotask(r));
+    expect(host.style.getPropertyValue('display')).toBe('none');
 
-    stub.fireStorageChanged({
-      showOriginal: { newValue: false, oldValue: true },
-    });
-    expect(host.style.display).toBe('');
+    stub.fireStorageChanged({ showOriginal: { newValue: false, oldValue: true } });
+    for (let i = 0; i < 4; i++) await new Promise<void>((r) => queueMicrotask(r));
+    expect(host.style.getPropertyValue('display')).toBe('block');
   });
 
   it('starts hidden when showOriginal is already true in storage', async () => {
@@ -254,7 +320,53 @@ describe('content script — escape hatch', () => {
     stub.storage['showOriginal'] = true;
     await runContentScript();
     const host = document.getElementById('onegov-root') as HTMLDivElement | null;
-    expect(host?.style.display).toBe('none');
+    expect(host?.style.getPropertyValue('display')).toBe('none');
+    // And document scroll NOT locked since overlay was never visible.
+    expect(document.documentElement.style.overflow).toBe('');
+  });
+});
+
+describe('content script — escape hatch (v0.1.1 extensionEnabled)', () => {
+  it('hides the host when extensionEnabled flips to false', async () => {
+    stub = installChromeContentStub(
+      makeResponder([
+        { type: 'get-status:reply', status: VERIFIED_STATUS },
+        { type: 'load-pack:reply', pack: SAMPLE_PACK },
+      ]),
+    );
+    await runContentScript();
+    const host = document.getElementById('onegov-root') as HTMLDivElement | null;
+    expect(host?.style.getPropertyValue('display')).toBe('block');
+
+    stub.fireStorageChanged({ extensionEnabled: { newValue: false, oldValue: true } });
+    for (let i = 0; i < 4; i++) await new Promise<void>((r) => queueMicrotask(r));
+    expect(host?.style.getPropertyValue('display')).toBe('none');
+  });
+
+  it('starts hidden when extensionEnabled is already false', async () => {
+    stub = installChromeContentStub(
+      makeResponder([
+        { type: 'get-status:reply', status: VERIFIED_STATUS },
+        { type: 'load-pack:reply', pack: SAMPLE_PACK },
+      ]),
+    );
+    stub.storage['extensionEnabled'] = false;
+    await runContentScript();
+    const host = document.getElementById('onegov-root') as HTMLDivElement | null;
+    expect(host?.style.getPropertyValue('display')).toBe('none');
+  });
+
+  it('treats unset extensionEnabled as true (premium first-run default)', async () => {
+    stub = installChromeContentStub(
+      makeResponder([
+        { type: 'get-status:reply', status: VERIFIED_STATUS },
+        { type: 'load-pack:reply', pack: SAMPLE_PACK },
+      ]),
+    );
+    // No `extensionEnabled` set.
+    await runContentScript();
+    const host = document.getElementById('onegov-root') as HTMLDivElement | null;
+    expect(host?.style.getPropertyValue('display')).toBe('block');
   });
 });
 
@@ -273,7 +385,6 @@ describe('content script — persona switching', () => {
     stub.fireStorageChanged({
       persona: { newValue: 'pensioner', oldValue: 'standard' },
     });
-    // Same host element survives — persona switch is in-place.
     const hostAfter = document.getElementById('onegov-root');
     expect(hostAfter).toBe(hostBefore);
   });
@@ -288,11 +399,28 @@ describe('content script — persona switching', () => {
     await runContentScript();
     const hostsBefore = document.querySelectorAll('#onegov-root').length;
     stub.fireStorageChanged(
-      {
-        persona: { newValue: 'pensioner', oldValue: 'standard' },
-      },
+      { persona: { newValue: 'pensioner', oldValue: 'standard' } },
       'sync',
     );
     expect(document.querySelectorAll('#onegov-root').length).toBe(hostsBefore);
+  });
+});
+
+describe('content script — sparse extraction guard (v0.1.1)', () => {
+  it('still mounts the overlay when extraction yields zero nodes', async () => {
+    // No <h1> in the page → the heading rule extracts nothing → tree.nodes
+    // ends up shorter than 3 → the persona layout falls back to the
+    // diagnostic banner. The overlay still mounts.
+    document.body.innerHTML = '<div>page without an h1</div>';
+    stub = installChromeContentStub(
+      makeResponder([
+        { type: 'get-status:reply', status: VERIFIED_STATUS },
+        { type: 'load-pack:reply', pack: SAMPLE_PACK },
+      ]),
+    );
+    await runContentScript();
+    const host = document.getElementById('onegov-root') as HTMLDivElement | null;
+    expect(host).not.toBeNull();
+    expect(host?.style.getPropertyValue('display')).toBe('block');
   });
 });

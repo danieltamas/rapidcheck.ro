@@ -3,15 +3,22 @@
  *
  * Splits the cross-context message routing out of `index.ts` so the icon
  * state machine (Track 4a) and the rule-pack/verifier glue (Track 4b) can be
- * unit-tested independently. The handlers cover the two operations the
+ * unit-tested independently. The handlers cover the four operations the
  * content script and popup need from the SW:
  *
  *   - `get-status` — reuse the same `verifyDomain` the icon machine uses, so
- *     content + popup never bundle psl + idna-uts46-hx (~105 KB gz).
+ *     content + popup never bundle psl + idna-uts46-hx (~105 KB gz). Reply
+ *     also carries the resolved hostname so the popup can render it without
+ *     re-querying tabs.
  *   - `load-pack` — fetch a bundled rule-pack JSON via
  *     `chrome.runtime.getURL` (the only allowed network op per Invariant #4)
  *     and validate it through the Zod schema. The content script never sees
  *     Zod or the loader; it consumes the validated `RulePack` directly.
+ *   - `record-signal` (v0.1.1) — content script forwards persona-inference
+ *     signals (tab usage, dwell time, scroll velocity). Fire-and-forget; the
+ *     SW updates a rolling window in `chrome.storage.session`.
+ *   - `get-persona-inference` (v0.1.1) — popup asks the SW for the currently
+ *     inferred persona + a Romanian-language reason string.
  *
  * Why centralise here:
  *   1. Bundle size — content.js stays under the 80 KB cap.
@@ -34,7 +41,16 @@ import type { DomainStatus, RulePack, VerifiedDomainList } from '@onegov/core';
 
 import { verifyDomain } from '../../../core/src/domain-verifier.js';
 
-import type { GetStatusReply, LoadPackReply, Reply, Request } from '../messages.js';
+import type {
+  GetPersonaInferenceReply,
+  GetStatusReply,
+  LoadPackReply,
+  RecordSignalReply,
+  Reply,
+  Request,
+} from '../messages.js';
+
+import { classifyPersona, recordSignal } from './persona-inference.js';
 
 /**
  * Resolve a URL to a `DomainStatus` using the SW's own roster. Identical to
@@ -51,6 +67,17 @@ function statusForUrl(url: string | undefined, roster: VerifiedDomainList): Doma
   }
   if (hostname.length === 0) return null;
   return verifyDomain(hostname, roster);
+}
+
+/** Pull the eTLD+1-ish hostname from a URL string for popup display. */
+function hostnameForUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const h = new URL(url).hostname;
+    return h.length > 0 ? h : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -94,7 +121,8 @@ export async function handleRequest(req: Request, roster: VerifiedDomainList): P
     case 'get-status': {
       const url = await resolveActiveUrl(req.url);
       const status = statusForUrl(url, roster);
-      const reply: GetStatusReply = { type: 'get-status:reply', status };
+      const hostname = hostnameForUrl(url);
+      const reply: GetStatusReply = { type: 'get-status:reply', status, hostname };
       return reply;
     }
     case 'load-pack': {
@@ -102,13 +130,61 @@ export async function handleRequest(req: Request, roster: VerifiedDomainList): P
       try {
         pack = await loadBundled(req.domain, makeFetcher());
       } catch {
-        // Validation error or unexpected throw → null. The SW logs nothing
-        // (no telemetry) and the content script renders nothing.
         pack = null;
       }
       const reply: LoadPackReply = { type: 'load-pack:reply', pack };
       return reply;
     }
+    case 'record-signal': {
+      // Fire-and-forget from the caller's perspective, but we still ack so
+      // the MV3 promise resolves cleanly.
+      try {
+        await recordSignal(req.signal);
+      } catch {
+        /* swallow — signals are best-effort */
+      }
+      const reply: RecordSignalReply = { type: 'record-signal:reply' };
+      return reply;
+    }
+    case 'get-persona-inference': {
+      let payload: { persona: GetPersonaInferenceReply['persona']; reason: string };
+      try {
+        payload = await classifyPersona();
+      } catch {
+        payload = { persona: 'standard', reason: 'încă învăț tiparul tău' };
+      }
+      // We surface `overridden: false` here because the override decision is
+      // owned by the popup (it reads `persona` from chrome.storage.local and
+      // decides whether to display the inferred or overridden persona). The
+      // SW only knows the auto-classified value.
+      const reply: GetPersonaInferenceReply = {
+        type: 'get-persona-inference:reply',
+        persona: payload.persona,
+        reason: payload.reason,
+        overridden: false,
+      };
+      return reply;
+    }
+  }
+}
+
+/** Build a fallback reply matched to a request type for the catch path. */
+function fallbackReply(reqType: Request['type']): Reply {
+  switch (reqType) {
+    case 'load-pack':
+      return { type: 'load-pack:reply', pack: null };
+    case 'record-signal':
+      return { type: 'record-signal:reply' };
+    case 'get-persona-inference':
+      return {
+        type: 'get-persona-inference:reply',
+        persona: 'standard',
+        reason: 'încă învăț tiparul tău',
+        overridden: false,
+      };
+    case 'get-status':
+    default:
+      return { type: 'get-status:reply', status: null, hostname: null };
   }
 }
 
@@ -123,14 +199,7 @@ export function registerMessageHandlers(roster: VerifiedDomainList): void {
     handleRequest(raw, roster)
       .then((reply) => sendResponse(reply))
       .catch(() => {
-        // Should never happen — handleRequest swallows internally — but if
-        // something throws we must still close the channel cleanly so the
-        // sender's promise resolves. Reply with the matching null shape.
-        const fallback: Reply =
-          raw.type === 'load-pack'
-            ? { type: 'load-pack:reply', pack: null }
-            : { type: 'get-status:reply', status: null };
-        sendResponse(fallback);
+        sendResponse(fallbackReply(raw.type));
       });
     return true;
   });
@@ -138,8 +207,8 @@ export function registerMessageHandlers(roster: VerifiedDomainList): void {
 
 /**
  * Type guard for incoming messages. Discards anything that doesn't look like
- * one of the two known request shapes. Defensive against page-script abuse if
- * a hostile site somehow gets `chrome.runtime` access (it shouldn't, but).
+ * one of the four known request shapes. Defensive against page-script abuse
+ * if a hostile site somehow gets `chrome.runtime` access.
  */
 function isRequest(value: unknown): value is Request {
   if (typeof value !== 'object' || value === null) return false;
@@ -149,5 +218,10 @@ function isRequest(value: unknown): value is Request {
     const d = (value as { domain?: unknown }).domain;
     return typeof d === 'string' && d.length > 0;
   }
+  if (t === 'record-signal') {
+    const s = (value as { signal?: unknown }).signal;
+    return typeof s === 'object' && s !== null && typeof (s as { kind?: unknown }).kind === 'string';
+  }
+  if (t === 'get-persona-inference') return true;
   return false;
 }

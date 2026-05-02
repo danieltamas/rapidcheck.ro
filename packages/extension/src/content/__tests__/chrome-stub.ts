@@ -72,6 +72,11 @@ export function installChromeContentStub(
           }
           return Promise.resolve();
         },
+        remove(keys: string | string[]): Promise<void> {
+          const list = typeof keys === 'string' ? [keys] : keys;
+          for (const k of list) delete storage[k];
+          return Promise.resolve();
+        },
       },
       onChanged: {
         addListener(cb: ChangeListener): void {

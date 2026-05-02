@@ -1,29 +1,35 @@
 /**
- * Pro persona — dense, two-column when there's room, keyboard hints visible.
+ * Pro persona — dense, two-column where there's room (v0.1.1).
  *
- * Tokens shrink type and spacing via `:host([data-persona="pro"])`. Layout
- * adds:
- *   - A two-column grid for body content (collapses on narrow shadow roots).
- *   - Visible keyboard hints next to action links (e.g. "Enter ↵").
- *   - All headings rendered as h2 by default to save vertical space, except
- *     the first.
+ * Inherits the premium shell + diagnostic fallback. Persona-specific:
+ *   - Body content lives in a responsive grid (`auto-fit, minmax(320px,1fr)`)
+ *     that collapses gracefully on narrow viewports.
+ *   - First heading stays h1 for orientation; subsequent headings drop to h2
+ *     to save vertical real estate.
+ *   - Links carry a small kbd hint badge so keyboard-driven users see "↵".
+ *   - Tokens (smaller type, denser spacing) come from
+ *     `:host([data-persona="pro"])` in theme.css.
  */
 
 import type { SemanticNode, SemanticTree } from '@onegov/core';
 
+import { AppShell } from './shell.js';
+import { DiagnosticBanner, isSparse } from './diagnostic.js';
 import { RenderedNode } from './shared.js';
 
 interface Props {
   tree: SemanticTree;
 }
 
-const GRID_STYLE = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-  gap: 'var(--onegov-spacing-2x)',
-};
-
 export function ProLayout({ tree }: Props) {
+  if (isSparse(tree.nodes.length)) {
+    return (
+      <AppShell domain={tree.domain} crumb={tree.layout} persona="pro">
+        <DiagnosticBanner domain={tree.domain} nodes={tree.nodes} />
+      </AppShell>
+    );
+  }
+
   let firstHeadingSeen = false;
   const renderedNodes = tree.nodes.map((node: SemanticNode) => {
     if (node.type === 'heading' && !firstHeadingSeen) {
@@ -47,8 +53,8 @@ export function ProLayout({ tree }: Props) {
   });
 
   return (
-    <main class="onegov-app onegov-app--pro" data-layout={tree.layout}>
-      <div style={GRID_STYLE}>{renderedNodes}</div>
-    </main>
+    <AppShell domain={tree.domain} crumb={tree.layout} persona="pro">
+      <div class="onegov-pro-grid">{renderedNodes}</div>
+    </AppShell>
   );
 }

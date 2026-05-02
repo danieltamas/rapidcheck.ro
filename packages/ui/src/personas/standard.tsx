@@ -1,25 +1,59 @@
 /**
- * Standard persona — clean default.
+ * Standard persona — the canonical premium look (v0.1.1).
  *
- * Adopts identitate.gov.ro tokens directly (PANTONE 280C blue, recommended
- * fonts, 8px spacing). Single column, normal density. This is what the
- * extension renders unless the user explicitly picks another persona.
+ * Single-column 960px max layout. Generous vertical rhythm via the new
+ * --onegov-sp-* scale. Headers ride the identitate.gov.ro brand; cards wrap
+ * each top-level node in subtle elevation so the hierarchy reads cleanly.
+ *
+ * On sparse extraction (fewer than 3 nodes) the diagnostic banner takes over
+ * so the user always sees a visible "layer is active" affordance.
  */
 
-import type { SemanticTree } from '@onegov/core';
+import type { SemanticNode, SemanticTree } from '@onegov/core';
 
+import { AppShell } from './shell.js';
+import { DiagnosticBanner, isSparse } from './diagnostic.js';
 import { RenderedNode } from './shared.js';
 
 interface Props {
   tree: SemanticTree;
 }
 
-export function StandardLayout({ tree }: Props) {
+/**
+ * Decide whether a node deserves its own premium card or should flow inline.
+ * Headings + paragraphs flow; tables, lists, forms, links, images get cards
+ * so they read as discrete affordances.
+ */
+function isCardCandidate(node: SemanticNode): boolean {
   return (
-    <main class="onegov-app" data-layout={tree.layout}>
-      {tree.nodes.map((node) => (
-        <RenderedNode key={node.id} node={node} persona="standard" />
-      ))}
-    </main>
+    node.type === 'table' ||
+    node.type === 'list' ||
+    node.type === 'form' ||
+    node.type === 'link' ||
+    node.type === 'image'
+  );
+}
+
+export function StandardLayout({ tree }: Props) {
+  if (isSparse(tree.nodes.length)) {
+    return (
+      <AppShell domain={tree.domain} crumb={tree.layout} persona="standard">
+        <DiagnosticBanner domain={tree.domain} nodes={tree.nodes} />
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell domain={tree.domain} crumb={tree.layout} persona="standard">
+      {tree.nodes.map((node) =>
+        isCardCandidate(node) ? (
+          <div key={node.id} class="onegov-card onegov-card--premium">
+            <RenderedNode node={node} persona="standard" />
+          </div>
+        ) : (
+          <RenderedNode key={node.id} node={node} persona="standard" />
+        ),
+      )}
+    </AppShell>
   );
 }

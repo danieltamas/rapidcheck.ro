@@ -15,6 +15,8 @@
  * Tokens follow identitate.gov.ro: PANTONE 280C blue (#003B73), recommended
  * fonts (Arial / Calibri / Verdana / Tahoma / Trebuchet / Ubuntu fallback),
  * 8px spacing base. Persona overrides via `:host([data-persona="<name>"])`.
+ *
+ * v0.1.1 polish — premium token layer added (see theme.css for full notes).
  */
 
 import type { Persona } from '@onegov/core';
@@ -33,8 +35,19 @@ export const THEME_CSS = `:host {
   --onegov-color-danger: #b3261e;
   --onegov-color-success: #1f7a3a;
   --onegov-color-warning: #b06700;
+  --onegov-color-neutral-50: #f7f9fc;
+  --onegov-color-neutral-100: #eef1f4;
+  --onegov-color-neutral-200: #d9dee5;
+  --onegov-color-neutral-300: #c0c8d2;
+  --onegov-color-neutral-400: #94a0ae;
+  --onegov-color-neutral-500: #6b7888;
+  --onegov-color-neutral-600: #4f5b6c;
+  --onegov-color-neutral-700: #38424f;
+  --onegov-color-neutral-800: #232b35;
+  --onegov-color-neutral-900: #111720;
   --onegov-font-base: Arial, Calibri, Verdana, Tahoma, Trebuchet MS, Ubuntu, sans-serif;
   --onegov-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --onegov-font-display: system-ui, -apple-system, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
   --onegov-font-size-base: 16px;
   --onegov-font-size-small: 14px;
   --onegov-font-size-h1: 32px;
@@ -44,21 +57,51 @@ export const THEME_CSS = `:host {
   --onegov-line-height-heading: 1.25;
   --onegov-font-weight-body: 400;
   --onegov-font-weight-strong: 700;
+  --onegov-fs-xs: 12px;
+  --onegov-fs-sm: 14px;
+  --onegov-fs-md: 16px;
+  --onegov-fs-lg: 20px;
+  --onegov-fs-xl: 28px;
+  --onegov-fs-2xl: 36px;
   --onegov-spacing: 8px;
   --onegov-spacing-half: 4px;
   --onegov-spacing-2x: 16px;
   --onegov-spacing-3x: 24px;
   --onegov-spacing-4x: 32px;
+  --onegov-sp-1: 4px;
+  --onegov-sp-2: 8px;
+  --onegov-sp-3: 12px;
+  --onegov-sp-4: 16px;
+  --onegov-sp-5: 20px;
+  --onegov-sp-6: 24px;
+  --onegov-sp-7: 32px;
+  --onegov-sp-8: 40px;
+  --onegov-sp-9: 48px;
+  --onegov-sp-10: 56px;
+  --onegov-sp-11: 64px;
+  --onegov-sp-12: 72px;
   --onegov-max-width: 1280px;
   --onegov-radius: 4px;
   --onegov-radius-large: 8px;
+  --onegov-radius-sm: 4px;
+  --onegov-radius-md: 8px;
+  --onegov-radius-lg: 16px;
+  --onegov-radius-full: 9999px;
   --onegov-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04);
   --onegov-shadow-elevated: 0 4px 12px rgba(15, 23, 42, 0.1);
+  --onegov-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --onegov-shadow-md: 0 2px 6px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --onegov-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
   --onegov-focus-ring: 2px solid #1d4f9b;
   --onegov-focus-offset: 2px;
   --onegov-target-size: 44px;
   --onegov-transition-fast: 120ms ease-out;
   --onegov-transition-medium: 200ms ease-out;
+  --onegov-duration-fast: 120ms;
+  --onegov-duration-base: 200ms;
+  --onegov-duration-slow: 320ms;
+  --onegov-ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --onegov-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
 }
 :host([data-persona='pensioner']) {
   --onegov-font-size-base: 20px;
@@ -156,9 +199,28 @@ export const THEME_CSS = `:host {
 .onegov-kbd-hint { display: inline-block; margin-left: var(--onegov-spacing-half); padding: 0 var(--onegov-spacing-half); font-family: var(--onegov-font-mono); font-size: var(--onegov-font-size-small); color: var(--onegov-color-muted); border: 1px solid var(--onegov-color-border); border-radius: 2px; }
 .onegov-table-tools { display: flex; gap: var(--onegov-spacing); padding: var(--onegov-spacing) var(--onegov-spacing-2x); background: var(--onegov-color-surface); border-bottom: 1px solid var(--onegov-color-border); font-size: var(--onegov-font-size-small); }
 .onegov-table-tools__action { background: transparent; border: 1px solid var(--onegov-color-border); border-radius: var(--onegov-radius); padding: var(--onegov-spacing-half) var(--onegov-spacing); font: inherit; font-size: var(--onegov-font-size-small); color: var(--onegov-color-link); cursor: pointer; }
+.onegov-shell { min-height: 100%; display: flex; flex-direction: column; background: var(--onegov-color-bg); }
+.onegov-shell__topbar { display: flex; align-items: center; gap: var(--onegov-sp-3); padding: var(--onegov-sp-4) var(--onegov-sp-6); background: var(--onegov-color-primary); color: var(--onegov-color-primary-contrast); box-shadow: var(--onegov-shadow-md); }
+.onegov-shell__brand { display: inline-flex; align-items: center; gap: var(--onegov-sp-2); font-family: var(--onegov-font-display); font-weight: 700; font-size: var(--onegov-fs-md); letter-spacing: -0.01em; }
+.onegov-shell__brand-mark { width: 24px; height: 24px; border-radius: var(--onegov-radius-sm); background: var(--onegov-color-primary-contrast); color: var(--onegov-color-primary); display: inline-grid; place-items: center; font-weight: 800; font-family: var(--onegov-font-display); font-size: 14px; line-height: 1; }
+.onegov-shell__crumb { font-size: var(--onegov-fs-sm); color: var(--onegov-color-primary-contrast); opacity: 0.85; margin-left: var(--onegov-sp-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.onegov-shell__main { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.onegov-shell__inner { max-width: 960px; margin: 0 auto; padding: var(--onegov-sp-9) var(--onegov-sp-6) var(--onegov-sp-11); }
+.onegov-shell__inner--wide { max-width: 1200px; }
+.onegov-shell__footer { border-top: 1px solid var(--onegov-color-neutral-200); background: var(--onegov-color-neutral-50); padding: var(--onegov-sp-4) var(--onegov-sp-6); font-size: var(--onegov-fs-xs); color: var(--onegov-color-neutral-600); display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--onegov-sp-3); }
+.onegov-shell__footer-mark { font-family: var(--onegov-font-display); font-weight: 700; }
+.onegov-card--premium { border: 1px solid var(--onegov-color-neutral-200); border-radius: var(--onegov-radius-lg); padding: var(--onegov-sp-6); background: var(--onegov-color-bg); box-shadow: var(--onegov-shadow-sm); margin: 0 0 var(--onegov-sp-5); transition: box-shadow var(--onegov-duration-base) var(--onegov-ease-standard); }
+.onegov-card--premium:hover { box-shadow: var(--onegov-shadow-md); }
+.onegov-diag { border: 1px solid var(--onegov-color-neutral-200); border-radius: var(--onegov-radius-lg); padding: var(--onegov-sp-7); background: linear-gradient(180deg, var(--onegov-color-neutral-50) 0%, var(--onegov-color-bg) 100%); box-shadow: var(--onegov-shadow-sm); }
+.onegov-diag__title { margin: 0 0 var(--onegov-sp-2); font-family: var(--onegov-font-display); font-size: var(--onegov-fs-xl); font-weight: 700; letter-spacing: -0.01em; color: var(--onegov-color-primary); }
+.onegov-diag__lede { margin: 0 0 var(--onegov-sp-5); color: var(--onegov-color-neutral-700); font-size: var(--onegov-fs-md); }
+.onegov-diag__details { margin-top: var(--onegov-sp-4); padding: var(--onegov-sp-4); background: var(--onegov-color-neutral-50); border-radius: var(--onegov-radius-md); border: 1px solid var(--onegov-color-neutral-200); }
+.onegov-diag__summary { cursor: pointer; font-weight: 600; font-size: var(--onegov-fs-sm); color: var(--onegov-color-neutral-700); user-select: none; }
+.onegov-diag__list { margin: var(--onegov-sp-3) 0 0; padding-left: var(--onegov-sp-5); font-family: var(--onegov-font-mono); font-size: var(--onegov-fs-xs); color: var(--onegov-color-neutral-600); }
+.onegov-pro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--onegov-sp-4); }
 :host *:focus-visible { outline: var(--onegov-focus-ring); outline-offset: var(--onegov-focus-offset); }
 @media (prefers-reduced-motion: reduce) {
-  :host { --onegov-transition-fast: 0ms; --onegov-transition-medium: 0ms; }
+  :host { --onegov-transition-fast: 0ms; --onegov-transition-medium: 0ms; --onegov-duration-fast: 0ms; --onegov-duration-base: 0ms; --onegov-duration-slow: 0ms; }
   * { animation: none !important; transition: none !important; }
 }`;
 
