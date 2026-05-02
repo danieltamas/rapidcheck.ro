@@ -325,6 +325,18 @@ See `SPEC.md §5.3` for the canonical manifest. Critical fields:
 
 ## UI Patterns
 
+> **Canonical reference:** [`docs/design-system.md`](./docs/design-system.md) is
+> the source of truth for every UI primitive shipped by `@onegov/ui` — props,
+> variants, states, accessibility notes, composition examples. Read it before
+> writing UI. The visual playground at
+> [`packages/ui/playground/index.html`](./packages/ui/playground/index.html)
+> renders every component live; the typed token mirror lives at
+> [`packages/ui/src/tokens.ts`](./packages/ui/src/tokens.ts).
+>
+> If a primitive you need does not exist, EXTEND the library in
+> `packages/ui/src/components/` and update the catalog + playground in the
+> same commit. Never inline a Button, Card, Modal, etc.
+
 ### Renderer signature
 
 ```typescript

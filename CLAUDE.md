@@ -413,6 +413,25 @@ bun run e2e
 
 ---
 
+## Design System (REQUIRED reading before any UI work)
+
+The v0.2 design system lives in `@onegov/ui`. Every UI primitive needed by site
+modules is shipped here as a named, tree-shakeable export consuming `--onegov-*`
+tokens. Site modules compose; they never re-roll primitives inline.
+
+| Resource | Where | Purpose |
+|---|---|---|
+| **Component catalog** (canonical) | [`docs/design-system.md`](./docs/design-system.md) | Every component with props, variants, states, a11y, usage examples. Token reference. Composition examples. "When to use." |
+| **One-page TLDR** | [`packages/ui/README.md`](./packages/ui/README.md) | Quick cue per component. |
+| **Visual playground** | [`packages/ui/playground/index.html`](./packages/ui/playground/index.html) | Self-contained static HTML — every component, every variant, opens in any browser without a build. Regenerate CSS via `bun run --cwd packages/ui build:playground`. |
+| **Token source of truth** | [`packages/ui/src/theme.css`](./packages/ui/src/theme.css) | All `--onegov-*` CSS custom properties. After editing, run `bun run --cwd packages/ui sync-theme` to refresh `theme.ts`. |
+| **Typed token mirror** | [`packages/ui/src/tokens.ts`](./packages/ui/src/tokens.ts) | JS-typed export of the same tokens for consumers that need values at runtime. |
+
+**Rule:** before building any UI in any task, READ `docs/design-system.md`.
+If a component you need does not exist, EXTEND the library
+(`packages/ui/src/components/`) and update the catalog + playground in the
+same commit. Never inline a primitive.
+
 ## UI/UX Design Principles
 
 ### Design Language
@@ -467,13 +486,28 @@ CAPTCHAs (reCAPTCHA, hCaptcha, Turnstile), OAuth iframes, payment iframes, 3-D-S
 4. **No DOM, no browser APIs.** If you need to operate on a document, take a `SerializableDoc` (see `types.ts`).
 5. Update `docs/ARCHITECTURE.md`
 
-### When adding a new UI component
+### When adding a new UI component (extending the design system)
 
-1. Create `packages/ui/src/components/<Name>.tsx`
-2. Accept `persona: Persona` prop and respond to it
-3. Add render test + add to `test-harness.html`
-4. Bundle-size check: `bun run build && du -sh dist/extension/content.js`
-5. Update `docs/ARCHITECTURE.md`
+1. Read [`docs/design-system.md`](./docs/design-system.md) first — confirm it
+   does not already exist and identify which category it belongs to (layout /
+   typography / action / form / surface / overlay / disclosure / navigation /
+   data display / feedback / page primitive).
+2. Create `packages/ui/src/components/<Name>.tsx`. Named export only. Hand-write
+   CSS using `--onegov-*` tokens — no hard-coded colours / sizes / motion.
+3. Forward `class?: string` to the root element so consumers can extend.
+4. Gate every animation on `prefers-reduced-motion: reduce`.
+5. Wire ARIA for any interactive behaviour (role, aria-*, keyboard handling).
+6. Localise default user-facing labels in Romanian.
+7. Add render + variant + interaction tests in
+   `packages/ui/src/components/__tests__/`.
+8. Add the component to `packages/ui/src/index.ts` (named export, no default).
+9. Add the component to `docs/design-system.md` (props table, usage example,
+   "when to use" entry).
+10. Add the component to `packages/ui/playground/index.html` showing every
+    variant + state. Re-run `bun run --cwd packages/ui build:playground` if
+    you touched `theme.css`.
+11. Bundle-size check: `bun run build && du -sh dist/extension/content.js`
+12. Update `docs/ARCHITECTURE.md` only if you changed module-level public API.
 
 ### When adding a new rule pack
 

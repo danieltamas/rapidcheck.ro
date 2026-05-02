@@ -1,44 +1,108 @@
 /**
- * Heading — renders an `<h1>` / `<h2>` / `<h3>` styled by persona tokens.
+ * Heading — semantic h1–h6 with consistent type scale.
  *
- * Persona behaviour:
- *   - `pensioner` adds `--pensioner` class for slightly tighter letter-spacing
- *   - `pro` shrinks size via `--onegov-font-size-h*` token (no class change)
- *   - `journalist` and `standard` use the default
+ * Variants:
+ *   level     1 → 6 (default 1) — semantic heading level + size
+ *   display   true → applies the display type scale (hero titles)
+ *   eyebrow   small uppercase label rendered above the heading
+ *   subtitle  smaller secondary text rendered below the heading
  *
- * Text is rendered via JSX, so Preact escapes it. Never accepts HTML.
+ * Persona behaviour preserved from v0.1: pensioner adds tighter letter-spacing
+ * via class, others rely entirely on token cascade.
+ *
+ * Public API stays compatible: callers passing `text + level + persona` keep
+ * working unchanged. New props are optional. v0.1 callers do not break.
  */
+
+import type { ComponentChildren, JSX } from 'preact';
 
 import type { Persona } from '@onegov/core';
 
-interface Props {
-  text: string;
-  level?: 1 | 2 | 3;
-  persona: Persona;
+type Level = 1 | 2 | 3 | 4 | 5 | 6;
+
+interface Props extends Omit<JSX.HTMLAttributes<HTMLHeadingElement>, 'class' | 'children'> {
+  text?: string;
+  level?: Level;
+  persona?: Persona;
+  display?: boolean;
+  eyebrow?: string;
+  subtitle?: string;
+  class?: string;
+  children?: ComponentChildren;
 }
 
-export function Heading({ text, level = 1, persona }: Props) {
-  const baseClass = level === 1 ? 'onegov-h1' : level === 2 ? 'onegov-h2' : 'onegov-h3';
-  const personaClass = persona === 'pensioner' ? `${baseClass}--pensioner` : '';
-  const cls = personaClass ? `${baseClass} ${personaClass}` : baseClass;
+export function Heading({
+  text,
+  level = 1,
+  persona = 'standard',
+  display = false,
+  eyebrow,
+  subtitle,
+  class: className,
+  children,
+  ...rest
+}: Props) {
+  const baseClass = `onegov-h${level}`;
+  const classes = [baseClass];
+  if (display) classes.push('onegov-h--display');
+  if (level === 1 && persona === 'pensioner') classes.push('onegov-h1--pensioner');
+  if (className) classes.push(className);
+  const cls = classes.join(' ');
+  const content: ComponentChildren = children ?? text ?? '';
 
-  if (level === 2) {
-    return (
-      <h2 class={cls} data-persona={persona}>
-        {text}
-      </h2>
-    );
+  // Render the heading element matching the level. We dispatch explicitly so
+  // TypeScript can verify each branch (no polymorphic `as` shenanigans).
+  let headingEl: ComponentChildren;
+  switch (level) {
+    case 2:
+      headingEl = (
+        <h2 class={cls} data-persona={persona} {...rest}>
+          {content}
+        </h2>
+      );
+      break;
+    case 3:
+      headingEl = (
+        <h3 class={cls} data-persona={persona} {...rest}>
+          {content}
+        </h3>
+      );
+      break;
+    case 4:
+      headingEl = (
+        <h4 class={cls} data-persona={persona} {...rest}>
+          {content}
+        </h4>
+      );
+      break;
+    case 5:
+      headingEl = (
+        <h5 class={cls} data-persona={persona} {...rest}>
+          {content}
+        </h5>
+      );
+      break;
+    case 6:
+      headingEl = (
+        <h6 class={cls} data-persona={persona} {...rest}>
+          {content}
+        </h6>
+      );
+      break;
+    default:
+      headingEl = (
+        <h1 class={cls} data-persona={persona} {...rest}>
+          {content}
+        </h1>
+      );
   }
-  if (level === 3) {
-    return (
-      <h3 class={cls} data-persona={persona}>
-        {text}
-      </h3>
-    );
-  }
+
+  if (!eyebrow && !subtitle) return <>{headingEl}</>;
   return (
-    <h1 class={cls} data-persona={persona}>
-      {text}
-    </h1>
+    <div class="onegov-heading-group">
+      {eyebrow ? <span class="onegov-eyebrow">{eyebrow}</span> : null}
+      {headingEl}
+      {subtitle ? <span class="onegov-subtitle">{subtitle}</span> : null}
+    </div>
   );
 }

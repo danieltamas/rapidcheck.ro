@@ -1,4 +1,17 @@
 /**
+ * GENERATED FROM `src/theme.css` by `scripts/build-playground.ts`.
+ *
+ * The playground is a plain HTML page so the canonical `:host` selectors
+ * (which only apply inside a shadow root) are rewritten to `.onegov-host`
+ * (or the custom element name `onegov-host`). Run the script to regenerate
+ * after editing tokens:
+ *
+ *   bun run --cwd packages/ui build:playground
+ */
+
+onegov-host { display: block; }
+
+/**
  * @onegov/ui — comprehensive design tokens, scoped to the closed shadow root.
  *
  * v0.2.0 design system foundation. Adopts identitate.gov.ro published tokens
@@ -6,8 +19,8 @@
  * into a complete, reusable token set that powers every component shipped by
  * the library.
  *
- * Scope: a single default token set on `:host` plus three persona overrides
- * via `:host([data-persona="<name>"])`. The renderer flips `data-persona` on
+ * Scope: a single default token set on `.onegov-host, onegov-host` plus three persona overrides
+ * via `.onegov-host[data-persona="<name>"], onegov-host[data-persona="<name>"]`. The renderer flips `data-persona` on
  * the shadow host element so cascades take effect without re-injecting CSS.
  *
  * Defensive reset: every element under the root drops to a known baseline so
@@ -45,7 +58,7 @@
  *   --onegov-transition-fast, --onegov-transition-medium
  */
 
-:host {
+.onegov-host, onegov-host {
   /* ─── Brand identity (identitate.gov.ro PANTONE 280C) ──────────────── */
   --onegov-color-primary: #003b73;
   --onegov-color-primary-hover: #1d4f9b;
@@ -241,7 +254,7 @@
 
 /* ─── Persona overrides ───────────────────────────────────────────── */
 
-:host([data-persona='pensioner']) {
+.onegov-host[data-persona='pensioner'], onegov-host[data-persona='pensioner'] {
   --onegov-font-size-base: 20px;
   --onegov-font-size-small: 18px;
   --onegov-font-size-h1: 40px;
@@ -260,7 +273,7 @@
   --onegov-fs-sm: 18px;
 }
 
-:host([data-persona='pro']) {
+.onegov-host[data-persona='pro'], onegov-host[data-persona='pro'] {
   --onegov-font-size-base: 14px;
   --onegov-font-size-small: 12px;
   --onegov-font-size-h1: 22px;
@@ -276,7 +289,7 @@
   --onegov-radius-large: 4px;
 }
 
-:host([data-persona='journalist']) {
+.onegov-host[data-persona='journalist'], onegov-host[data-persona='journalist'] {
   --onegov-font-size-base: 15px;
   --onegov-font-size-small: 13px;
   --onegov-font-size-h1: 26px;
@@ -290,8 +303,7 @@
 
 /* ─── Defensive reset (defense in depth) ──────────────────────────── */
 
-:host {
-  all: initial;
+.onegov-host, onegov-host {
   display: block;
   font-family: var(--onegov-font-base);
   font-size: var(--onegov-font-size-base);
@@ -303,12 +315,10 @@
   text-rendering: optimizeLegibility;
 }
 
-* {
-  box-sizing: border-box;
-}
+.onegov-host *, onegov-host * { box-sizing: border-box; }
 
 /* ─── Focus rings — explicit, never removed ───────────────────────── */
-:host *:focus-visible {
+.onegov-host, onegov-host *:focus-visible {
   outline: var(--onegov-focus-ring);
   outline-offset: var(--onegov-focus-offset);
   border-radius: 2px;
@@ -316,7 +326,7 @@
 
 /* ─── Reduced motion ──────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  :host {
+  .onegov-host, onegov-host {
     --onegov-transition-fast: 0ms;
     --onegov-transition-medium: 0ms;
     --onegov-duration-fast: 0ms;

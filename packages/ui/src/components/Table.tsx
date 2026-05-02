@@ -1,31 +1,33 @@
 /**
- * Table — semantic table with optional copy-as-CSV affordance for journalists.
+ * Table — semantic table with optional sticky header, sortable columns and
+ * a CSV-export affordance for the journalist persona.
  *
- * The CSV button is a `Button` element; the click handler is wired only when
- * the persona is `journalist`. The handler reads from local component state —
- * NEVER from `document.*` — and uses an in-memory string. We do NOT call
- * `navigator.clipboard.writeText` here because that would require permissions
- * outside the shadow root's reach; the CSV is rendered to a hidden textarea
- * the user can select instead. (No clipboard side-effects, no permission
- * prompts, no globals — invariant 4 stays clean.)
+ * v0.1 API preserved: callers passing `{ headers, rows, persona }` continue
+ * to work — they get the legacy plain table render with the journalist CSV
+ * tool.
+ *
+ * New API (additive): TableHead / TableBody / TableRow / TableCell
+ * subcomponents for richer composition (column-level alignment, row actions,
+ * sortable headers).
  *
  * Cells are rendered through JSX (escaped). `headers` and `rows` arrive as
  * plain strings already extracted by the rule pack.
  */
 
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 
 import type { Persona } from '@onegov/core';
 
-interface Props {
+interface LegacyProps {
   headers: string[];
   rows: string[][];
   persona: Persona;
+  /** Make the header row sticky. */
+  sticky?: boolean;
 }
 
 function escapeCsvCell(value: string): string {
-  // RFC 4180-ish: wrap in quotes if cell contains comma, quote, or newline;
-  // double any embedded quotes.
   if (/[",\r\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
@@ -41,12 +43,13 @@ function toCsv(headers: string[], rows: string[][]): string {
   return lines.join('\n');
 }
 
-export function Table({ headers, rows, persona }: Props) {
+export function Table({ headers, rows, persona, sticky }: LegacyProps) {
   const [csvVisible, setCsvVisible] = useState(false);
   const isJournalist = persona === 'journalist';
 
   const tableClasses = ['onegov-table'];
   if (isJournalist) tableClasses.push('onegov-table--journalist');
+  if (sticky) tableClasses.push('onegov-table--sticky');
 
   return (
     <div class="onegov-table-wrap" data-persona={persona}>
@@ -92,5 +95,69 @@ export function Table({ headers, rows, persona }: Props) {
         </textarea>
       ) : null}
     </div>
+  );
+}
+
+/* ----- Composable Table API (additive) -------------------------------- */
+
+interface TableShellProps {
+  sticky?: boolean;
+  children: ComponentChildren;
+  class?: string;
+}
+
+export function TableShell({ sticky, children, class: className }: TableShellProps) {
+  const tableClasses = ['onegov-table'];
+  if (sticky) tableClasses.push('onegov-table--sticky');
+  if (className) tableClasses.push(className);
+  return (
+    <div class="onegov-table-wrap">
+      <table class={tableClasses.join(' ')}>{children}</table>
+    </div>
+  );
+}
+
+export function TableHead({ children }: { children: ComponentChildren }) {
+  return <thead>{children}</thead>;
+}
+
+export function TableBody({ children }: { children: ComponentChildren }) {
+  return <tbody>{children}</tbody>;
+}
+
+export function TableRow({ children }: { children: ComponentChildren }) {
+  return <tr>{children}</tr>;
+}
+
+interface CellProps {
+  align?: 'left' | 'center' | 'right';
+  children: ComponentChildren;
+  /** Render as <th> instead of <td>. */
+  header?: boolean;
+}
+
+export function TableCell({ align = 'left', children, header }: CellProps) {
+  const Tag = header ? 'th' : 'td';
+  const style = align === 'left' ? undefined : `text-align:${align}`;
+  return <Tag style={style}>{children}</Tag>;
+}
+
+interface SortHeaderProps {
+  label: string;
+  direction?: 'asc' | 'desc' | null;
+  onSort: () => void;
+}
+
+export function TableSortHeader({ label, direction, onSort }: SortHeaderProps) {
+  const arrow = direction === 'asc' ? '▲' : direction === 'desc' ? '▼' : '↕';
+  return (
+    <th aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}>
+      <button type="button" class="onegov-table__sort" onClick={onSort}>
+        {label}
+        <span class="onegov-table__sort-icon" aria-hidden="true">
+          {arrow}
+        </span>
+      </button>
+    </th>
   );
 }

@@ -16,6 +16,8 @@
   "scripts": {
     "build": "tsc --build",
     "build:harness": "bun run scripts/build-harness.ts",
+    "build:playground": "bun run scripts/build-playground.ts",
+    "sync-theme": "bun run scripts/sync-theme.ts",
     "test": "bun test"
   },
   "dependencies": {

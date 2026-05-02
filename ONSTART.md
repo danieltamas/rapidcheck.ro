@@ -164,6 +164,15 @@ modifying underlying form data, sessions, or submissions.
 Tech: Vite + TypeScript + Preact + bun:test, Bun workspaces monorepo.
 Read CLAUDE.md, then SPEC.md, then CODING.md before writing code.
 
+## Required reading before UI work
+- `docs/design-system.md` — canonical component catalog
+- `packages/ui/README.md` — one-page TLDR
+- `packages/ui/playground/index.html` — visual browse of every component
+
+If a component you need doesn't exist, EXTEND the library in
+`packages/ui/src/components/` and update the catalog + playground in the
+same commit. Do NOT reinvent primitives inline.
+
 ## Your Job
 Implement the task. Write code, write tests, commit, write DONE report.
 
@@ -192,6 +201,9 @@ If your implementation weakens any of these, STOP and ask the orchestrator.
 - No new dependencies without orchestrator approval
 - No new host_permissions without orchestrator approval
 - Tests required for every change (bun:test unit, Playwright E2E if user-flow changed)
+- **Use design system primitives from `@onegov/ui`** — never inline a Button,
+  Card, Modal, etc. If a component is missing, extend the library; the
+  per-task fix lives in `packages/ui/src/components/` plus catalog + playground updates.
 
 ## Commit Rules
 - NEVER add Co-Authored-By

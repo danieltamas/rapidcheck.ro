@@ -8,7 +8,12 @@
  *
  * Rule-pack-supplied text is rendered through JSX (escaped). The href that
  * survives validation is set via Preact prop, never via `innerHTML`.
+ *
+ * v0.1 API preserved: callers passing { text, href, persona } work unchanged.
+ * New `variant`, `children`, `class`, `external` props are additive.
  */
+
+import type { ComponentChildren, JSX } from 'preact';
 
 import type { Persona } from '@onegov/core';
 
@@ -61,35 +66,61 @@ export function sanitizeHref(href: string): string | null {
   return trimmed;
 }
 
-interface Props {
-  text: string;
+type Variant = 'default' | 'quiet';
+
+interface Props extends Omit<JSX.HTMLAttributes<HTMLAnchorElement>, 'class' | 'children' | 'href'> {
+  text?: string;
+  children?: ComponentChildren;
   href: string;
-  persona: Persona;
+  persona?: Persona;
+  variant?: Variant;
+  /** Override scheme-based external detection. When true, adds rel hardening + target=_blank. */
+  external?: boolean;
+  class?: string;
 }
 
-export function Link({ text, href, persona }: Props) {
+export function Link({
+  text,
+  children,
+  href,
+  persona = 'standard',
+  variant = 'default',
+  external,
+  class: className,
+  ...rest
+}: Props) {
   const safeHref = sanitizeHref(href);
+
+  const content: ComponentChildren = children ?? text ?? '';
 
   if (safeHref === null) {
     // Render as plain text — never as an anchor — to neutralise the unsafe
     // scheme. Mark with a class so the visual harness can show the difference.
     return (
       <span class="onegov-link onegov-link--blocked" data-persona={persona}>
-        {text}
+        {content}
       </span>
     );
   }
 
-  // External links (anything starting with http(s)) get rel hardening.
-  const isExternal = safeHref.startsWith('http://') || safeHref.startsWith('https://');
+  const classes = ['onegov-link'];
+  if (variant === 'quiet') classes.push('onegov-link--quiet');
+  if (className) classes.push(className);
+
+  // External links (anything starting with http(s)) get rel hardening unless
+  // the caller explicitly opts out by passing `external={false}`.
+  const isHttp = safeHref.startsWith('http://') || safeHref.startsWith('https://');
+  const treatAsExternal = external ?? isHttp;
+
   return (
     <a
-      class="onegov-link"
+      class={classes.join(' ')}
       href={safeHref}
       data-persona={persona}
-      {...(isExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
+      {...(treatAsExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
+      {...rest}
     >
-      {text}
+      {content}
     </a>
   );
 }
