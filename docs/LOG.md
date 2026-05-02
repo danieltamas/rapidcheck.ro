@@ -4,6 +4,47 @@ Append-only chronological log of meaningful changes. One entry per task.
 
 ---
 
+## 2026-05-02 — v0.2.0 anaf.ro takeover (architecture proof)
+
+**Task:** `jobs/v0.2.0-anaf/01-anaf-takeover.md`
+**Branch:** `job/v0.2.0-anaf/takeover`
+
+Replaces the v0.1 rule-pack overlay rendering for anaf.ro with a hand-crafted
+"site module" that hides the original page chrome at `document_start` and
+re-renders a modern UI composed entirely from `@onegov/ui` primitives.
+
+Key surfaces added:
+
+- `packages/extension/src/loader/index.ts` — pre-paint splash + hide-original
+  style with safety timeout; zero deps; respects `prefers-reduced-motion`.
+- `packages/extension/src/sites/{registry,types}.ts` — site module dispatch
+  contract; the registry resolves a URL to a SiteModule or null.
+- `packages/extension/src/sites/anaf.ro/` — full takeover module (nav,
+  context, bridge, App, StatusBar, Home, Cui, styles).
+- Form bridging proof: `submitForm({ kind: 'cui-search', cui })` writes the
+  original anaf form input + dispatches submit (preferring `requestSubmit`),
+  navigation fallback when no form is present.
+- `packages/extension/src/manifest.json` — content_scripts split: anaf.ro
+  runs at `document_start` (loader), other ship-list sites keep
+  `document_idle` and are currently no-ops.
+- Popup: persona pill replaced by a single density chip
+  (`minimal | simplu | bogat`, default `simplu`). Persona inference + storage
+  remain under the hood for back-compat.
+- CLAUDE.md invariants relaxed in three documented ways for v0.2 (form-bridge
+  writes on user intent, `documentElement.style.overflow` toggle carry-over,
+  optional public-API call from a registered site module).
+
+Other ship-list sites (dgep, portal.just, ghiseul, rotld, itmcluj) are
+explicitly NOT registered — visiting them with the extension installed is
+visually unchanged from no-extension; only the toolbar badge differs. Their
+per-site modules ship in subsequent tasks once the anaf template is approved.
+
+The `rule-packs/anaf.ro.json` file is now vestigial — the content script no
+longer loads it. The file stays for documentation of the original page
+structure but is not referenced at runtime.
+
+---
+
 ## 2026-05-02 — Monorepo scaffold + core types
 
 **Task:** `jobs/v0.1-foundation/01-monorepo-scaffold.md`

@@ -1,8 +1,10 @@
 /**
- * Popup — Preact app rendered inside the browser action popup (v0.1.1).
+ * Popup — Preact app rendered inside the browser action popup (v0.2.0).
  *
- * Premium redesign per `jobs/v0.1.1-polish/01-premium-ux-overhaul.md`. The
- * popup now reads as designed instead of stacked atomic widgets:
+ * v0.2 redesign: replaces the persona pill with a single UI density chip.
+ * Persona inference + storage stays under the hood for back-compat (the
+ * background SW still classifies + the storage key still exists), but the
+ * popup no longer surfaces it.
  *
  *   ┌─────────────────────────────────────┐
  *   │  [g]  onegov                        │   branded header strip
@@ -11,13 +13,13 @@
  *   │  Aplică interfața onegov   ●━━━━○   │   primary on/off toggle
  *   │  comutator principal                │
  *   ├─────────────────────────────────────┤
- *   │  👴 Vârstnic              schimbă   │   auto-inferred persona
- *   │  detectat automat — sesiuni lungi   │
+ *   │  Densitate: [Minimal][Simplu][Bogat]│   density chip (single row)
+ *   │  controlează cât conținut afișăm    │
  *   ├─────────────────────────────────────┤
  *   │  ●  anaf.ro                         │   current-tab status
  *   │     Site oficial verificat          │
  *   ├─────────────────────────────────────┤
- *   │  Despre · v0.1.1 · GitHub           │   footer (subtle)
+ *   │  Despre · v0.2.0 · GitHub           │   footer (subtle)
  *   └─────────────────────────────────────┘
  *
  * State surfaces:
@@ -25,12 +27,8 @@
  *     toggle. Drives the content script's host display via
  *     `showOriginal = !extensionEnabled` (back-compat with the existing
  *     content-script storage listener).
- *   - `persona` (chrome.storage.local) — explicit override; absent until the
- *     user picks. The popup hides the override picker by default; "schimbă"
- *     reveals it.
- *   - `personaInference` from the SW — the auto-classified persona + reason.
- *     Always rendered, even when the user has overridden (we surface what we
- *     would have chosen so the override is informed).
+ *   - `uiDensity` (chrome.storage.local, default 'simplu') — content script
+ *     reads this at mount + on storage change, re-rendering the App.
  *
  * Romanian copy is allowed because this is user-facing UI text (per CLAUDE.md
  * §Critical Rules). All other code stays in English.
@@ -46,24 +44,30 @@
 import { render } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
-import type { DomainStatus, Persona } from '@onegov/core';
+import type { DomainStatus } from '@onegov/core';
 
-import type { GetPersonaInferenceReply, GetStatusReply } from '../messages.js';
+import type { GetStatusReply } from '../messages.js';
 import logoUrl from '../../icons-src/onegov.logo.white.svg';
 
 const REPO_URL = 'https://github.com/danitamas/onegov.ro';
 
-const PERSONA_PRESENTATION: Record<
-  Persona,
-  { label: string; icon: string; hint: string }
-> = {
-  pensioner: { label: 'Vârstnic', icon: '\u{1F475}', hint: 'tipar mare, simplu' },
-  standard: { label: 'Standard', icon: '\u{1F9D1}', hint: 'echilibrat' },
-  pro: { label: 'Profesionist', icon: '\u{1F4BC}', hint: 'compact, taste rapide' },
-  journalist: { label: 'Jurnalist', icon: '\u{1F4F0}', hint: 'tabele largi, copiere CSV' },
+/** Mirror of the SiteRuntime density type. Local to keep the popup free of
+ *  cross-package imports beyond what's already available via @onegov/core. */
+type Density = 'minimal' | 'simplu' | 'bogat';
+const DENSITY_ORDER: ReadonlyArray<Density> = ['minimal', 'simplu', 'bogat'];
+const DEFAULT_DENSITY: Density = 'simplu';
+
+const DENSITY_LABELS: Record<Density, string> = {
+  minimal: 'Minimal',
+  simplu: 'Simplu',
+  bogat: 'Bogat',
 };
 
-const PERSONA_ORDER: ReadonlyArray<Persona> = ['pensioner', 'standard', 'pro', 'journalist'];
+const DENSITY_HINTS: Record<Density, string> = {
+  minimal: 'doar esențialul',
+  simplu: 'echilibrat (recomandat)',
+  bogat: 'tot conținutul vizibil',
+};
 
 /**
  * Translate a `DomainStatus` (or absence thereof) into the trio of values the
@@ -91,17 +95,6 @@ export function statusPillFor(status: DomainStatus | null): {
   }
 }
 
-/**
- * Branded header strip. v0.1.2: replaces the v0.1.1 text "g" mark + literal
- * "onegov" wordmark with the inlined `onegov.logo.white.svg` lockup. The
- * tagline stays as muted text below the logo so first-time users still get
- * a one-line "what is this" cue.
- *
- * The asset is bundled via Vite's default SVG-as-URL resolver — Vite either
- * inlines the small SVG as a data URI or copies it next to popup.js,
- * depending on the configured asset size threshold. Either way no extra
- * permissions are required (popup.html is part of the extension itself).
- */
 function Header() {
   return (
     <header class="pop-header" role="banner">
@@ -116,11 +109,6 @@ interface PrimaryToggleProps {
   onChange: (next: boolean) => void;
 }
 
-/**
- * The headline switch. Replaces the previous "Afișează site-ul original"
- * toggle which was framed backwards (the old default was off, meaning the
- * extension was on; new default is on for clarity).
- */
 function PrimaryToggle({ on, onChange }: PrimaryToggleProps) {
   return (
     <section class="pop-section pop-section--toggle">
@@ -144,88 +132,40 @@ function PrimaryToggle({ on, onChange }: PrimaryToggleProps) {
   );
 }
 
-interface PersonaCardProps {
-  inferred: Persona;
-  reason: string;
-  override: Persona | null;
-  onPick: (next: Persona) => void;
-  onClearOverride: () => void;
+interface DensityChipProps {
+  current: Density;
+  onPick: (next: Density) => void;
 }
 
 /**
- * Auto-inferred persona + an inline override picker. The picker is hidden by
- * default; clicking "schimbă" reveals it. We always show the inferred persona
- * even after the user has overridden so they can return to auto with one tap.
+ * v0.2 replacement for the persona card. A single chip with three options;
+ * the description below explains what each does in one phrase.
  */
-function PersonaCard({ inferred, reason, override, onPick, onClearOverride }: PersonaCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  const active = override ?? inferred;
-  const present = PERSONA_PRESENTATION[active];
-  const hint = override
-    ? 'ales manual'
-    : `detectat automat${reason ? ' — ' + reason : ''}`;
-
+function DensityChip({ current, onPick }: DensityChipProps) {
   return (
-    <section class="pop-section pop-section--persona">
-      <div class="pop-persona">
-        <span class="pop-persona__icon" aria-hidden="true">
-          {present.icon}
-        </span>
-        <div class="pop-persona__body">
-          <span class="pop-persona__label">{present.label}</span>
-          <span class="pop-persona__reason">
-            {hint}
-            {' \u00B7 '}
-            <button
-              type="button"
-              class="pop-persona__change"
-              aria-expanded={expanded}
-              onClick={() => setExpanded((prev) => !prev)}
-            >
-              {expanded ? 'ascunde' : 'schimbă'}
-            </button>
-            {override ? (
-              <>
-                {' \u00B7 '}
-                <button
-                  type="button"
-                  class="pop-persona__change"
-                  onClick={() => {
-                    onClearOverride();
-                    setExpanded(false);
-                  }}
-                >
-                  revino la auto
-                </button>
-              </>
-            ) : null}
-          </span>
-        </div>
-      </div>
-      {expanded ? (
-        <div class="pop-persona-picker" role="radiogroup" aria-label="Alege persona">
-          {PERSONA_ORDER.map((p) => {
-            const meta = PERSONA_PRESENTATION[p];
-            const selected = p === active;
+    <section class="pop-section pop-section--density">
+      <div class="pop-density">
+        <span class="pop-density__label">Densitate interfață</span>
+        <div class="pop-density__chip" role="radiogroup" aria-label="Densitate interfață">
+          {DENSITY_ORDER.map((d) => {
+            const selected = d === current;
             return (
               <button
-                key={p}
+                key={d}
                 type="button"
                 role="radio"
                 aria-checked={selected}
-                data-persona={p}
-                class={`pop-persona-option${selected ? ' pop-persona-option--selected' : ''}`}
-                onClick={() => onPick(p)}
+                data-density={d}
+                class={`pop-density__option${selected ? ' pop-density__option--selected' : ''}`}
+                onClick={() => onPick(d)}
               >
-                <span class="pop-persona-option__name">
-                  {meta.icon} {meta.label}
-                </span>
-                <span class="pop-persona-option__hint">{meta.hint}</span>
+                {DENSITY_LABELS[d]}
               </button>
             );
           })}
         </div>
-      ) : null}
+        <span class="pop-density__hint">{DENSITY_HINTS[current]}</span>
+      </div>
     </section>
   );
 }
@@ -235,10 +175,6 @@ interface SiteStatusProps {
   hostname: string | null;
 }
 
-/**
- * Current-tab status row. Shows the eTLD+1 (or "—" for unsupported pages)
- * and the verification state in one line.
- */
 function SiteStatus({ status, hostname }: SiteStatusProps) {
   const { variant, label } = statusPillFor(status);
   const display = hostname && hostname.length > 0 ? hostname : '\u2014';
@@ -274,35 +210,27 @@ function Footer({ version }: { version: string }) {
   );
 }
 
-/**
- * Hydration helpers — defensive parsing. Both keys default to safe values
- * that match the content script's pre-existing behavior (extension on,
- * no override, no auto-inference yet).
- */
-function coercePersona(raw: unknown): Persona | null {
-  return typeof raw === 'string' && PERSONA_ORDER.includes(raw as Persona)
-    ? (raw as Persona)
-    : null;
+/** Coerce raw storage value into a Density. */
+function coerceDensity(raw: unknown): Density {
+  return typeof raw === 'string' && (DENSITY_ORDER as ReadonlyArray<string>).includes(raw)
+    ? (raw as Density)
+    : DEFAULT_DENSITY;
 }
 
 function Popup() {
   const [enabled, setEnabled] = useState(true);
-  const [override, setOverride] = useState<Persona | null>(null);
-  const [inferred, setInferred] = useState<Persona>('standard');
-  const [reason, setReason] = useState('încă învăț tiparul tău');
+  const [density, setDensity] = useState<Density>(DEFAULT_DENSITY);
   const [status, setStatus] = useState<DomainStatus | null>(null);
   const [hostname, setHostname] = useState<string | null>(null);
 
-  // Hydrate from storage + ask the SW for status and inference.
+  // Hydrate from storage + ask the SW for status.
   useEffect(() => {
     let cancelled = false;
     chrome.storage.local
-      .get(['persona', 'extensionEnabled'])
+      .get(['uiDensity', 'extensionEnabled'])
       .then((s) => {
         if (cancelled) return;
-        const ov = coercePersona(s['persona']);
-        setOverride(ov);
-        // extensionEnabled defaults to true when unset (premium first-run).
+        setDensity(coerceDensity(s['uiDensity']));
         setEnabled(s['extensionEnabled'] !== false);
       })
       .catch(() => {
@@ -323,35 +251,14 @@ function Popup() {
         }
       });
 
-    chrome.runtime
-      .sendMessage({ type: 'get-persona-inference' })
-      .then((reply: GetPersonaInferenceReply | undefined) => {
-        if (cancelled) return;
-        if (reply && reply.type === 'get-persona-inference:reply') {
-          setInferred(reply.persona);
-          setReason(reply.reason);
-        }
-      })
-      .catch(() => {
-        // SW unreachable — keep defaults.
-      });
-
     return () => {
       cancelled = true;
     };
   }, []);
 
-  function pickPersona(next: Persona) {
-    setOverride(next);
-    void chrome.storage.local.set({ persona: next }).catch(() => {});
-  }
-
-  function clearOverride() {
-    setOverride(null);
-    // Persist by removing the key so the content script falls back to the
-    // SW-inferred persona on next read. `chrome.storage.local.remove` is a
-    // single key here.
-    void chrome.storage.local.remove('persona').catch(() => {});
+  function pickDensity(next: Density) {
+    setDensity(next);
+    void chrome.storage.local.set({ uiDensity: next }).catch(() => {});
   }
 
   function toggleEnabled(next: boolean) {
@@ -371,13 +278,7 @@ function Popup() {
     <main class="pop-shell">
       <Header />
       <PrimaryToggle on={enabled} onChange={toggleEnabled} />
-      <PersonaCard
-        inferred={inferred}
-        reason={reason}
-        override={override}
-        onPick={pickPersona}
-        onClearOverride={clearOverride}
-      />
+      <DensityChip current={density} onPick={pickDensity} />
       <SiteStatus status={status} hostname={hostname} />
       <Footer version={manifestVersion} />
     </main>

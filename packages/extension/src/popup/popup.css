@@ -11,7 +11,7 @@
  *   .pop-shell                 root flex column
  *     .pop-header              branded strip (g mark + onegov + tagline)
  *     .pop-section--toggle     primary on/off switch
- *     .pop-section--persona    auto-inferred persona display + override
+ *     .pop-section--density    UI density chip (v0.2.0 replacement)
  *     .pop-section--site       current-tab status
  *     .pop-footer              about / version / GitHub
  *
@@ -223,116 +223,66 @@ body {
   outline-offset: 3px;
 }
 
-/* --- Persona pill --------------------------------------------------------- */
+/* --- Density chip (replaces persona pill in v0.2.0) ---------------------- */
 
-.pop-persona {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pop-sp-3);
-}
-
-.pop-persona__icon {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: var(--pop-radius-md);
-  background: var(--pop-surface);
-  border: 1px solid var(--pop-border);
-  display: inline-grid;
-  place-items: center;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.pop-persona__body {
+.pop-density {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1 1 auto;
+  gap: var(--pop-sp-2);
 }
 
-.pop-persona__label {
-  font-size: var(--pop-fs-lg);
+.pop-density__label {
+  font-size: var(--pop-fs-sm);
   font-weight: 600;
   color: var(--pop-text);
-  line-height: 1.2;
 }
 
-.pop-persona__reason {
+.pop-density__chip {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--pop-border);
+  border-radius: var(--pop-radius-pill);
+  padding: 2px;
+  background: var(--pop-surface);
+}
+
+.pop-density__option {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--pop-fs-sm);
+  font-weight: 600;
+  color: var(--pop-text-muted);
+  padding: 6px 14px;
+  border-radius: var(--pop-radius-pill);
+  cursor: pointer;
+  transition:
+    background var(--pop-duration-fast) var(--pop-ease),
+    color var(--pop-duration-fast) var(--pop-ease);
+}
+.pop-density__option:hover {
+  color: var(--pop-text);
+}
+.pop-density__option:focus-visible {
+  outline: var(--pop-focus-ring);
+  outline-offset: 2px;
+}
+.pop-density__option--selected {
+  background: var(--pop-brand);
+  color: var(--pop-on-brand);
+}
+
+.pop-density__hint {
   font-size: var(--pop-fs-sm);
   color: var(--pop-text-muted);
   line-height: 1.35;
 }
 
-.pop-persona__change {
-  background: transparent;
-  border: none;
-  color: var(--pop-brand);
-  font: inherit;
-  font-size: var(--pop-fs-sm);
-  font-weight: 600;
-  cursor: pointer;
-  padding: 2px 4px;
-  margin-left: 4px;
-  border-radius: 4px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.pop-persona__change:hover {
-  color: var(--pop-brand-soft);
-}
-.pop-persona__change:focus-visible {
-  outline: var(--pop-focus-ring);
-  outline-offset: 2px;
-}
-
-/* Override picker (revealed only when "schimbă" is clicked) */
-.pop-persona-picker {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--pop-sp-2);
-  margin-top: var(--pop-sp-3);
-}
-
-.pop-persona-option {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: var(--pop-sp-2) var(--pop-sp-3);
-  border-radius: var(--pop-radius-sm);
-  border: 1px solid var(--pop-border);
-  background: var(--pop-bg);
-  color: var(--pop-text);
-  font: inherit;
-  font-size: var(--pop-fs-sm);
-  cursor: pointer;
-  text-align: left;
-  transition:
-    background var(--pop-duration-fast) var(--pop-ease),
-    border-color var(--pop-duration-fast) var(--pop-ease);
-}
-.pop-persona-option:hover {
-  background: var(--pop-surface);
-  border-color: var(--pop-border-strong);
-}
-.pop-persona-option:focus-visible {
-  outline: var(--pop-focus-ring);
-  outline-offset: 2px;
-}
-.pop-persona-option--selected {
-  border-color: var(--pop-brand);
-  background: var(--pop-surface);
-  box-shadow: inset 0 0 0 1px var(--pop-brand);
-}
-.pop-persona-option__name {
-  font-weight: 600;
-  color: var(--pop-text);
-}
-.pop-persona-option__hint {
-  font-size: var(--pop-fs-xs);
-  color: var(--pop-text-subtle);
+@media (prefers-reduced-motion: reduce) {
+  .pop-density__option {
+    transition: none;
+  }
 }
 
 /* --- Site status --------------------------------------------------------- */
@@ -428,7 +378,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pop-switch,
   .pop-switch__thumb,
-  .pop-persona-option,
   .pop-card--premium {
     transition: none;
   }

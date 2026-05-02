@@ -3,37 +3,54 @@
 This document mirrors the live state of the codebase. Update it whenever you
 add or change a module, route, message, or public API.
 
-## High-level diagram
+## High-level diagram (v0.2.0)
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│ Extension Shell (MV3) — packages/extension                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Background   │  │ Content      │  │ Popup UI     │      │
-│  │ Service      │  │ Script       │  │ (Preact)     │      │
-│  │ Worker       │  │ (per tab)    │  │              │      │
-│  │              │  │              │  │              │      │
-│  │ icon state   │  │ shadow root  │  │ persona pick │      │
-│  │ msg routing  │  │ extract→render│ │ show original│      │
-│  │ storage      │  │ observe DOM  │  │ status pill  │      │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
-└─────────┼─────────────────┼─────────────────┼──────────────┘
-          ▼                 ▼                 ▼
-┌────────────────────────────────────────────────────────────┐
-│ Core Engine — packages/core (DOM-free, pure TS)            │
-│  • domain-verifier.ts    eTLD+1 match → DomainStatus       │
-│  • lookalike.ts          Levenshtein, IDNA, nearest        │
-│  • rule-pack-loader.ts   load + validate (Zod)             │
-│  • semantic-extractor.ts rule + serialized DOM → SemTree   │
-│  • persona.ts            persona overrides on routes       │
-└────────────────────────────────────────────────────────────┘
-          │                                   │
-          ▼                                   ▼
-┌──────────────────────┐  ┌────────────────────────────────┐
-│ UI — packages/ui     │  │ Rule Packs — rule-packs/       │
-│ Preact components    │  │ bundled JSON                   │
-│ + 4 persona variants │  │ + verified domain roster       │
-└──────────────────────┘  └────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ Extension Shell (MV3) — packages/extension                       │
+│  ┌──────────────┐  ┌──────────────────┐  ┌──────────────┐        │
+│  │ Background   │  │ Content Script   │  │ Popup UI     │        │
+│  │ Service Worker│ │ (per tab)        │  │ (Preact)     │        │
+│  │              │  │                  │  │              │        │
+│  │ icon badge   │  │ 1. resolveModule │  │ density chip │        │
+│  │ msg routing  │  │ 2. mountLoader   │  │ on/off toggle│        │
+│  │ storage      │  │ 3. verify status │  │ status pill  │        │
+│  │ persona infer│  │ 4. shadow host   │  │              │        │
+│  │              │  │ 5. App render    │  │              │        │
+│  └──────┬───────┘  └────────┬─────────┘  └──────┬───────┘        │
+└─────────┼───────────────────┼───────────────────┼────────────────┘
+          ▼                   ▼                   ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ Site modules — packages/extension/src/sites/                     │
+│   registry.ts → resolveModule(url) → SiteModule | null           │
+│   anaf.ro/                                                       │
+│     index.ts        SiteModule export                            │
+│     nav.ts          isMatch + classifyRoute                      │
+│     context.ts      extractContext (read-only)                   │
+│     bridge.ts       form bridging (CUI search proof)             │
+│     App.tsx         StatusBar + page switcher                    │
+│     Home.tsx        Hero + SearchBox + CardGrid (Density-aware)  │
+│     Cui.tsx         CUI lookup + DefinitionList + bridge         │
+│     styles.ts       module-scoped CSS                            │
+└──────────────────────────────────────────────────────────────────┘
+          │                                                 │
+          ▼                                                 ▼
+┌──────────────────────────────────────┐  ┌────────────────────────┐
+│ Loader — packages/extension/src/     │  │ UI — packages/ui       │
+│ loader/index.ts                      │  │ 50+ Preact primitives  │
+│   mountLoader() → LoaderHandle       │  │ token-driven theme     │
+│   removeHideOriginal/applyHideOrig.  │  │ shadow-root mount      │
+└──────────────────────────────────────┘  └────────────────────────┘
+          │                                                 │
+          ▼                                                 ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ Core Engine — packages/core (DOM-free, pure TS)                  │
+│  • domain-verifier.ts    eTLD+1 match → DomainStatus             │
+│  • lookalike.ts          Levenshtein, IDNA, nearest              │
+│  • rule-pack-loader.ts   load + validate (Zod) — vestigial v0.2  │
+│  • semantic-extractor.ts rule + serialized DOM → SemTree (v0.1)  │
+│  • persona.ts            persona overrides (carry-over for SW)   │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Packages
@@ -66,16 +83,66 @@ it never touches `document` directly.
 ### `@onegov/extension`
 
 The only package allowed to use `chrome.*`. Holds the MV3 manifest, the
-background service worker, the content script, and the popup Preact app.
+background service worker, the content script, the popup Preact app, the
+v0.2 loader, and the per-site takeover modules.
 
 | Entry | Output bundle | Status |
 |-------|---------------|--------|
-| `src/background/index.ts` | `dist/extension/background.js` (ESM, `"type": "module"`) | Logs install marker; idles |
-| `src/content/index.ts` | `dist/extension/content.js` (IIFE) | No-op; never appends shadow host until Track 4 |
-| `src/popup/index.tsx` | `dist/extension/popup.js` (ESM consumed by `popup.html`) | Renders placeholder Preact UI |
+| `src/background/index.ts` | `dist/extension/background.js` (ESM, `"type": "module"`) | Per-tab badge state machine + cross-context message routing (status, rule pack, persona inference) |
+| `src/content/index.ts` | `dist/extension/content.js` (IIFE) | v0.2 dispatcher: resolves a site module, mounts loader, mounts shadow host, renders the App |
+| `src/loader/index.ts` | bundled into content.js | Pre-paint splash + hide-original style with safety timeout |
+| `src/sites/registry.ts` | bundled into content.js | URL → SiteModule lookup |
+| `src/sites/anaf.ro/*` | bundled into content.js | The v0.2.0 takeover module |
+| `src/popup/index.tsx` | `dist/extension/popup.js` (ESM consumed by `popup.html`) | Branded header, on/off toggle, density chip, site-status row |
 
-The build copies `manifest.json`, `popup.html`, `popup.css`, and `icons/`
-into `dist/extension/`.
+The build copies `manifest.json`, `popup.html`, `popup.css`, `icons/`,
+and the (now vestigial) `rule-packs/` JSON into `dist/extension/`.
+
+#### v0.2 dispatch lifecycle
+
+The content script's main contract:
+
+1. `resolveModule(new URL(location.href))` — `null` exits cleanly, no DOM mutation.
+2. `mountLoader()` — appends `<style id="onegov-hide-original">` + splash; auto-aborts after 3s if mount stalls.
+3. `chrome.runtime.sendMessage({ type: 'get-status' })` — non-verified → `loader.abort()` (page restored).
+4. Mount closed shadow host with full-viewport overlay styles.
+5. Inject design-system theme + module CSS into the shadow root.
+6. `mod.extractContext(document, url)` — read-only context.
+7. `preactRender(h(mod.App, { ctx, runtime }), mount)` inside the shadow root.
+8. Hold loader ≥200ms then `loader.dismiss()`.
+9. Subscribe to `chrome.storage.onChanged` for `uiDensity` + `extensionEnabled` + legacy `showOriginal`.
+
+#### Site module contract (`packages/extension/src/sites/types.ts`)
+
+```ts
+interface SiteModule<Ctx> {
+  domain: string;
+  isMatch(url: URL): boolean;
+  extractContext(doc: Document, url: URL): Ctx;
+  App: ComponentType<{ ctx: Ctx; runtime: SiteRuntime }>;
+  css?: string;
+}
+```
+
+`SiteRuntime` injects `{ density, setDensity, showOriginal, hideOriginal }`
+so site modules never touch `chrome.*` directly.
+
+v0.2.0 ships ONE site module: `anaf.ro`. The other 5 ship-list domains
+(dgep, portal.just, ghiseul, rotld, itmcluj) keep the toolbar badge but
+have NO registered module — `resolveModule` returns null and the content
+script exits without injecting anything.
+
+#### Form bridging (`sites/anaf.ro/bridge.ts`)
+
+```ts
+submitForm({ kind: 'cui-search', cui: '14841555' })
+  → BridgeResult { submitted, navigated, reason? }
+```
+
+Locates an original `<form>` containing `input[name="cui"]`, writes the
+value, dispatches `submit` (preferring `requestSubmit` when available).
+Falls back to `location.assign` to a known anaf URL when no form is found.
+**Never reads form values passively.**
 
 ### Brand icons
 
@@ -87,26 +154,46 @@ at 32 / 48 / 128 px) — `scripts/gen-icons.ts` does the swap-and-rasterise.
 PNGs are committed because the renderer (`@resvg/resvg-js`) is deterministic.
 Full guidelines in `docs/brand.md`.
 
-## Manifest (current — v0.1 ship list)
+## Manifest (current — v0.2.0)
 
 Permissions: `storage`, `scripting`, `activeTab`, `webNavigation`. Nothing
 else without orchestrator approval (CLAUDE.md rule).
 
-`host_permissions` and `content_scripts.matches` are restricted to the v0.1
-ship list from SITES_COVERAGE.md §8:
+`host_permissions` are unchanged from v0.1.
 
-```
-*://*.anaf.ro/*
-*://dgep.mai.gov.ro/*
-*://*.depabd.mai.gov.ro/*
-*://portal.just.ro/*
-*://*.ghiseul.ro/*
-*://*.rotld.ro/*
-*://itmcluj.ro/*
+`content_scripts` is **split** in v0.2.0 so anaf.ro runs at `document_start`
+(loader can mount before the page paints) while the other ship-list
+domains keep `document_idle`:
+
+```jsonc
+"content_scripts": [
+  {
+    "matches": ["*://*.anaf.ro/*"],
+    "js": ["content.js"],
+    "run_at": "document_start",
+    "all_frames": false
+  },
+  {
+    "matches": [
+      "*://dgep.mai.gov.ro/*",
+      "*://*.depabd.mai.gov.ro/*",
+      "*://portal.just.ro/*",
+      "*://*.ghiseul.ro/*",
+      "*://*.rotld.ro/*",
+      "*://itmcluj.ro/*"
+    ],
+    "js": ["content.js"],
+    "run_at": "document_idle"
+  }
+]
 ```
 
-`browser_specific_settings.gecko` is intentionally **omitted** — v0.1 is
-Chrome-desktop-only. Firefox parity (and the gecko key) lands in v0.2.
+The other-domain entry is currently a no-op at runtime (registry returns
+null) — the entry is kept so per-site modules can be added incrementally
+without re-touching the manifest.
+
+`browser_specific_settings.gecko` is intentionally **omitted** — v0.1/v0.2
+is Chrome-desktop-only. Firefox parity (and the gecko key) lands in v0.3.
 
 ## Build pipeline
 

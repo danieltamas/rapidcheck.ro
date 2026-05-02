@@ -1,194 +1,136 @@
 /**
- * Content script — runs in the page's isolated world at `document_idle`.
+ * Content script — v0.2 lifecycle dispatcher.
  *
- * v0.1.1 polish: the shadow host now claims the full viewport
- * (`position: fixed; inset: 0; z-index: 2147483647`) with an opaque
- * background so the original page is visually replaced rather than peeking
- * through. The owner explicitly approved this in the v0.1.1 task spec — the
- * five invariants still hold because the original DOM is untouched (only the
- * appended `<div id="onegov-root">` differs) and the toggle remains the
- * one-click escape hatch.
+ * Runs at:
+ *   - `document_start` for anaf.ro (per manifest split) — loader injects before
+ *     the page paints, so the user never sees the original 1800s chrome.
+ *   - `document_idle` for the other ship-list sites (dgep, portal.just,
+ *     ghiseul, rotld, itmcluj). v0.2.0 does NOT mount an overlay for those —
+ *     they keep the toolbar badge (verified state) and otherwise render the
+ *     original page untouched. Their per-site modules ship in subsequent tasks.
  *
- * Architectural choice (per task spec, option 2): the heavy modules
- * (`verifyDomain` + `loadBundled` from `@onegov/core`) live in the
- * background service worker. This script only does extraction + rendering,
- * so the bundle stays under the 80 KB gzipped cap.
+ * Flow:
+ *   1. Resolve the site module from `./sites/registry.ts`.
+ *      - If none claims the URL → exit cleanly. No loader, no DOM mutation.
+ *   2. Mount the loader (hide-original style + splash) immediately.
+ *   3. Ask the SW for verified status.
+ *      - If not verified → loader.abort(), restoring the original page.
+ *   4. Read density preference from chrome.storage.local.
+ *   5. Mount the closed shadow host with overlay styles.
+ *   6. Extract context from the original document.
+ *   7. Render the site module's `App` into the shadow root via Preact.
+ *   8. Hold loader for ≥200ms (visible feedback) then dismiss.
+ *   9. Wire storage listener for density changes + extensionEnabled toggle +
+ *      legacy showOriginal toggle.
  *
- * Lifecycle:
- *   1. Ask the background SW: `{ type: 'get-status', url: location.href }`
- *      → SW replies with the same `DomainStatus` it used to paint the icon.
- *   2. If `verified`, ask the SW for the bundled rule pack.
- *   3. Pick the first `Route` whose `match.pattern` regex matches.
- *   4. Read persona + extensionEnabled from `chrome.storage.local`.
- *   5. Apply persona overrides + extract → SemanticTree.
- *   6. Mount the closed shadow host with the full-viewport overlay styles.
- *   7. Render persona-adapted Preact app inside the shadow root. If the tree
- *      is sparse (<3 nodes), the persona layout falls back to a diagnostic
- *      banner so the user always sees a visible affordance.
- *   8. Subscribe to `chrome.storage.onChanged`:
- *      - persona switch → re-extract + re-render.
- *      - extensionEnabled / showOriginal toggle → flip overlay visibility +
- *        restore document scroll.
+ * Failure paths:
+ *   - SW unreachable → loader.abort() (page restored).
+ *   - Module's extractContext throws → render with default context (App must
+ *     defend against missing fields).
+ *   - Render throws → loader.abort() so user isn't stuck.
  *
- * ⚠️ ONE NARROW DOM EXCEPTION (deliberate, scoped, restored on toggle off):
+ * Invariants enforced:
+ *   #1 Original DOM untouched aside from the THREE appended siblings under
+ *      <body>: <style id="onegov-hide-original">, <div id="onegov-loader">,
+ *      <div id="onegov-root">. The site module also sets the documented
+ *      documentElement.style.overflow toggle (carry-over from v0.1.1).
+ *   #2 No passive form data reads. The site module's bridge.ts is the ONLY
+ *      surface that touches form inputs, and only on explicit user submit.
+ *   #3 No remote code. JSX-only paths.
+ *   #4 No external network from this file. Site modules MAY call public APIs
+ *      under their host_permissions (e.g. webservicesp.anaf.ro) — see §H.4.
+ *   #5 Escape hatch unchanged: removing #onegov-hide-original (and hiding the
+ *      shadow host) restores the live page.
  *
- *   While the overlay is visible we set `documentElement.style.overflow =
- *   'hidden'` so the page underneath does not scroll alongside the overlay's
- *   own scrollable inner column. When the overlay is toggled off (or the
- *   content script is told to hide), we restore the original inline value.
- *
- *   Invariant #1 forbids mutating "any non-`<div id="onegov-root">` node",
- *   and `documentElement` is the *original page's* root. The v0.1.1 task
- *   spec authorizes this exception explicitly because:
- *     - it is a single inline style toggle, not structural mutation;
- *     - it is fully reversible (we cache the old value and restore it);
- *     - without it the dual-scroll feels broken on every test page.
- *   Document this loudly: any future contributor MUST NOT extend this to
- *   other style properties or other elements without a similar review.
- *
- * Invariants enforced here:
- *   #1 Original DOM untouched. The ONLY structural mutation is appending
- *      the shadow host node, exactly once. The ONLY style mutation is the
- *      documented `documentElement.style.overflow` toggle above.
- *   #2 No form data. `SerializableDoc` exposes neither `.value` nor
- *      `.elements` nor `FormData`.
- *   #3 No remote code. Rule-pack data renders exclusively through Preact
- *      JSX (escaped). No `eval`, no `Function`, no `innerHTML =`.
- *   #4 No external network. ZERO `fetch()` here — every cross-context call
- *      goes through `chrome.runtime.sendMessage`.
- *   #5 Escape works. Toggling `extensionEnabled` (or legacy `showOriginal`)
- *      hides the overlay AND restores the document scroll, so the original
- *      page is fully interactive underneath.
- *
- * Bundle-size discipline: deep-imports `extract` and
- * `applyPersonaOverrides` from `@onegov/core` (avoiding the barrel).
+ * Bundle: this file ships inside content.js. We deep-import the site module
+ * surfaces directly so the bundler can tree-shake everything else.
  */
 
-import { extract } from '../../../core/src/semantic-extractor.js';
-import { applyPersonaOverrides } from '../../../core/src/persona.js';
-import type { DomainStatus, Persona, Route, RulePack, SemanticTree } from '@onegov/core';
-import { render } from '@onegov/ui';
+import { h, render as preactRender } from 'preact';
 
-import type {
-  GetStatusReply,
-  GetStatusRequest,
-  LoadPackReply,
-  LoadPackRequest,
-} from '../messages.js';
+import { mountLoader, applyHideOriginal, removeHideOriginal } from '../loader/index.js';
+import { resolveModule } from '../sites/registry.js';
+import {
+  DEFAULT_DENSITY,
+  DENSITY_VALUES,
+  type Density,
+  type SiteModule,
+  type SiteRuntime,
+} from '../sites/types.js';
 
-import { wrapDocument } from './serializable-doc.js';
+import type { GetStatusReply, GetStatusRequest } from '../messages.js';
 import { startSignalCollection } from './signals.js';
 
-declare const __DEV__: boolean;
+declare const __DEV__: boolean | undefined;
+/** Safe accessor — `__DEV__` is a Vite define at build time but unset in tests. */
+const isDev = (): boolean => {
+  try {
+    return typeof __DEV__ !== 'undefined' && __DEV__ === true;
+  } catch {
+    return false;
+  }
+};
 
 const HOST_ID = 'onegov-root';
-const PERSONAS_VALID: ReadonlySet<Persona> = new Set([
-  'pensioner',
-  'standard',
-  'pro',
-  'journalist',
-] satisfies Persona[]);
-const DEFAULT_PERSONA: Persona = 'standard';
-
-/** The maximum z-index the spec allows. Used to claim the viewport. */
+const MOUNT_ID = 'onegov-app';
+const MIN_LOADER_HOLD_MS = 200;
+/** The maximum z-index allowed by the spec. */
 const MAX_Z_INDEX = 2147483647;
 
 /**
- * Round-trip a typed request through `chrome.runtime.sendMessage` and return
- * the typed reply. Returns `null` on transport failure (SW unreachable, port
- * closed mid-flight) so callers can degrade to a no-op cleanly.
+ * Round-trip a typed request through `chrome.runtime.sendMessage`. Returns
+ * `null` on transport failure (SW unreachable, port closed) so callers can
+ * degrade cleanly.
  */
-async function sendMessage<TReply>(
-  request: GetStatusRequest | LoadPackRequest,
-): Promise<TReply | null> {
+async function sendMessage(req: GetStatusRequest): Promise<GetStatusReply | null> {
   try {
-    const reply = (await chrome.runtime.sendMessage(request)) as TReply | undefined;
+    const reply = (await chrome.runtime.sendMessage(req)) as GetStatusReply | undefined;
     return reply ?? null;
   } catch {
     return null;
   }
 }
 
-/** Clamp a `chrome.storage.local` value into the `Persona` union. */
-function coercePersona(raw: unknown): Persona {
-  return typeof raw === 'string' && PERSONAS_VALID.has(raw as Persona)
-    ? (raw as Persona)
-    : DEFAULT_PERSONA;
+/** Coerce raw storage value into the `Density` union. */
+function coerceDensity(raw: unknown): Density {
+  return typeof raw === 'string' && (DENSITY_VALUES as ReadonlyArray<string>).includes(raw)
+    ? (raw as Density)
+    : DEFAULT_DENSITY;
 }
 
 interface Settings {
-  persona: Persona;
+  density: Density;
   /** v0.1.1 primary toggle (default true). */
   enabled: boolean;
   /** Legacy "afișează site-ul original" toggle (default false). */
   showOriginal: boolean;
 }
 
-/**
- * Read persona + visibility from storage. Two keys are honored:
- *   - `extensionEnabled` (v0.1.1, default true) — primary on/off
- *   - `showOriginal` (legacy, default false) — original "afișează site-ul
- *     original" toggle. The popup writes both for back-compat.
- *
- * The caller computes "hidden" from these two values: `hidden = !enabled ||
- * showOriginal`. We expose them separately so the storage-change listener
- * can fold partial events without re-reading storage (avoids race with the
- * not-yet-flushed write the popup just made).
- */
 async function readSettings(): Promise<Settings> {
   try {
     const stored = await chrome.storage.local.get([
-      'persona',
+      'uiDensity',
       'showOriginal',
       'extensionEnabled',
     ]);
     const enabledExplicit = stored['extensionEnabled'];
     const enabled = enabledExplicit === undefined ? true : enabledExplicit !== false;
     return {
-      persona: coercePersona(stored['persona']),
+      density: coerceDensity(stored['uiDensity']),
       enabled,
       showOriginal: stored['showOriginal'] === true,
     };
   } catch {
-    return { persona: DEFAULT_PERSONA, enabled: true, showOriginal: false };
+    return { density: DEFAULT_DENSITY, enabled: true, showOriginal: false };
   }
-}
-
-/**
- * Build the `SemanticTree` for `route` under `persona`.
- */
-function buildTree(route: Route, persona: Persona, url: string, domain: string): SemanticTree {
-  const adapted = applyPersonaOverrides(route, persona);
-  const base = extract(adapted.extract, wrapDocument(document), url);
-  return { ...base, domain, layout: adapted.layout };
-}
-
-/**
- * Pick the first `Route` whose pathname pattern matches.
- */
-function matchRoute(pack: RulePack, pathname: string): Route | null {
-  for (const route of pack.routes) {
-    let re: RegExp;
-    try {
-      re = new RegExp(route.match.pattern);
-    } catch {
-      continue;
-    }
-    if (re.test(pathname)) return route;
-  }
-  return null;
 }
 
 /**
  * Apply the full-viewport overlay styling to the host element. Pulled out so
- * the test suite can assert the exact contract (every style listed below MUST
- * be present; nothing else writes inline styles to the host except the
- * `display` toggle and the persona-driven background that comes through the
- * shadow root's `<style>` element, not the host).
- *
- * `setProperty(name, value, 'important')` is the safest path against pages
- * that ship aggressive `* { z-index: ... !important }` rules — the shadow
- * host is OUR element, but we still want our `position: fixed` to win.
+ * the test suite can assert the exact contract. Carry-over from v0.1.1 with
+ * one tweak: background uses `--onegov-color-bg` indirectly through the
+ * host's child surface; the host itself stays white to avoid a flash if
+ * tokens haven't loaded.
  */
 function applyOverlayStyles(host: HTMLDivElement): void {
   const s = host.style;
@@ -204,26 +146,14 @@ function applyOverlayStyles(host: HTMLDivElement): void {
   s.setProperty('padding', '0', 'important');
   s.setProperty('z-index', String(MAX_Z_INDEX), 'important');
   s.setProperty('isolation', 'isolate', 'important');
-  // Opaque background so the page underneath is visually replaced. The
-  // persona theme's --onegov-color-bg cascades into the shadow root and
-  // colors the inner content; the host itself stays the same neutral white
-  // so a flicker between persona switches doesn't bleed through.
   s.setProperty('background', '#ffffff', 'important');
   s.setProperty('color-scheme', 'light', 'important');
-  // Scrolling: the host owns the viewport, so it must be scrollable on the
-  // y-axis (the page's <html>/<body> are scroll-locked while we're up).
-  // x-axis stays hidden — overlay content is fixed-width and we don't want
-  // horizontal scrollbars under any circumstance.
   s.setProperty('overflow-x', 'hidden', 'important');
   s.setProperty('overflow-y', 'auto', 'important');
   s.setProperty('display', 'block', 'important');
 }
 
-/**
- * Mount the shadow host with the full-viewport overlay styles. Closed-mode
- * by hard rule (CLAUDE.md). The host is a single sibling div under `<body>`
- * carrying a stable id + the `data-onegov` marker the renderer keys off of.
- */
+/** Mount the closed shadow host. */
 function mountShadowHost(): { host: HTMLDivElement; shadow: ShadowRoot } {
   const host = document.createElement('div');
   host.id = HOST_ID;
@@ -235,95 +165,185 @@ function mountShadowHost(): { host: HTMLDivElement; shadow: ShadowRoot } {
 }
 
 /**
- * Document scroll lock. The overlay manages its own scroll; the page beneath
- * should NOT scroll while we're up. This is the one narrow exception to
- * invariant #1, documented at the top of this file.
- *
- * `previousOverflow` caches the inline value so we restore exactly what was
- * there — including an empty string, which means "no inline override".
+ * Document scroll lock — narrow exception to invariant #1 (carry-over from
+ * v0.1.1, documented at length in the previous content script).
  */
 let previousDocumentOverflow: string | null = null;
 
 function lockDocumentScroll(): void {
-  if (previousDocumentOverflow !== null) return; // already locked
+  if (previousDocumentOverflow !== null) return;
   previousDocumentOverflow = document.documentElement.style.overflow;
   document.documentElement.style.overflow = 'hidden';
 }
 
 function unlockDocumentScroll(): void {
-  if (previousDocumentOverflow === null) return; // not locked
+  if (previousDocumentOverflow === null) return;
   document.documentElement.style.overflow = previousDocumentOverflow;
   previousDocumentOverflow = null;
 }
 
-/**
- * Set host visibility + lock/unlock the document scroll in one call so the
- * two stay in sync.
- */
 function setOverlayVisible(host: HTMLDivElement, visible: boolean): void {
   if (visible) {
     host.style.setProperty('display', 'block', 'important');
     lockDocumentScroll();
+    applyHideOriginal();
   } else {
     host.style.setProperty('display', 'none', 'important');
     unlockDocumentScroll();
+    removeHideOriginal();
   }
 }
 
 /**
- * Activate the overlay for a verified domain. All side effects are
- * concentrated here so `main()` stays readable.
+ * Inject the design-system theme stylesheet into the shadow root, then
+ * (optionally) the site module's own CSS. Theme first so module styles can
+ * read tokens; both are idempotent.
  */
-async function activate(domain: string, pack: RulePack): Promise<void> {
-  const route = matchRoute(pack, location.pathname);
-  if (!route) {
-    // eslint-disable-next-line no-console
-    console.info(
-      '[onegov] exiting — no route in pack matches pathname',
-      location.pathname,
-      '(routes:',
-      pack.routes.map((r) => r.match.pattern).join(', '),
-      ')',
-    );
+async function injectStyles(shadow: ShadowRoot, moduleCss?: string): Promise<void> {
+  const ownerDoc = shadow.ownerDocument;
+  if (!ownerDoc) return;
+
+  if (!shadow.querySelector('style[data-onegov-theme]')) {
+    const { THEME_CSS } = await import('@onegov/ui');
+    const style = ownerDoc.createElement('style');
+    style.setAttribute('data-onegov-theme', '1');
+    style.textContent = THEME_CSS;
+    shadow.appendChild(style);
+  }
+
+  if (moduleCss && !shadow.querySelector('style[data-onegov-module]')) {
+    const style = ownerDoc.createElement('style');
+    style.setAttribute('data-onegov-module', '1');
+    style.textContent = moduleCss;
+    shadow.appendChild(style);
+  }
+}
+
+/**
+ * Activate the v0.2 takeover for the resolved site module.
+ *
+ * Steps mirror the §Lifecycle phases in `jobs/v0.2.0-anaf/01-anaf-takeover.md`.
+ */
+async function activate(mod: SiteModule): Promise<void> {
+  const t0 = performance.now();
+  const loader = mountLoader();
+
+  const statusReply = await sendMessage({ type: 'get-status', url: location.href });
+  const status = statusReply?.status ?? null;
+  if (!status || status.kind !== 'verified') {
+    if (isDev()) {
+      // eslint-disable-next-line no-console
+      console.info('[onegov] not verified — restoring original page');
+    }
+    loader.abort();
     return;
   }
-  // eslint-disable-next-line no-console
-  console.info('[onegov] route matched:', route.match.pattern, '— mounting overlay');
 
-  const initial = await readSettings();
+  const settings = await readSettings();
+  const initiallyHidden = !settings.enabled || settings.showOriginal;
+
+  // Mount shadow host (still hidden if user has overlay off).
   const { host, shadow } = mountShadowHost();
 
-  let currentPersona: Persona = initial.persona;
-  let currentEnabled = initial.enabled;
-  let currentShowOriginal = initial.showOriginal;
-  let currentTree: SemanticTree = buildTree(route, currentPersona, location.href, domain);
-  render(currentTree, currentPersona, shadow);
+  // Theme tokens + module CSS so the first paint inside the shadow root
+  // has them.
+  await injectStyles(shadow, mod.css);
 
-  const initiallyHidden = !currentEnabled || currentShowOriginal;
+  // Mount node for Preact.
+  let mountNode = shadow.querySelector(`#${MOUNT_ID}`) as HTMLElement | null;
+  if (!mountNode) {
+    const ownerDoc = shadow.ownerDocument;
+    if (!ownerDoc) {
+      loader.abort();
+      return;
+    }
+    mountNode = ownerDoc.createElement('div');
+    mountNode.id = MOUNT_ID;
+    shadow.appendChild(mountNode);
+  }
+  // Strict-mode requires a non-null reference for preactRender's parent;
+  // freeze the local in a const so TS narrows correctly across closures.
+  const mount: HTMLElement = mountNode;
+
+  // Reflect density on the host so token cascades take effect.
+  host.setAttribute('data-density', settings.density);
+
+  // Build a typed runtime services bag the site module's App receives. Using
+  // closures keeps the App free of chrome.* references.
+  let currentDensity: Density = settings.density;
+  let currentEnabled = settings.enabled;
+  let currentShowOriginal = settings.showOriginal;
+
+  const runtime: SiteRuntime = {
+    density: currentDensity,
+    showOriginal(): void {
+      void chrome.storage.local.set({ showOriginal: true }).catch(() => {});
+    },
+    hideOriginal(): void {
+      void chrome.storage.local.set({ showOriginal: false }).catch(() => {});
+    },
+    setDensity(next: Density): void {
+      currentDensity = next;
+      runtime.density = next;
+      host.setAttribute('data-density', next);
+      void chrome.storage.local.set({ uiDensity: next }).catch(() => {});
+      // Re-render with the new density value.
+      void renderApp();
+    },
+  };
+
+  /** Extract context + render the App tree. Defensive against extractor throws. */
+  function renderApp(): Promise<void> {
+    let ctx: unknown;
+    try {
+      ctx = mod.extractContext(document, new URL(location.href));
+    } catch (err) {
+      if (isDev()) {
+        // eslint-disable-next-line no-console
+        console.warn('[onegov] extractContext threw:', err);
+      }
+      ctx = null;
+    }
+    try {
+      preactRender(h(mod.App, { ctx, runtime }), mount);
+    } catch (err) {
+      if (isDev()) {
+        // eslint-disable-next-line no-console
+        console.warn('[onegov] App render threw:', err);
+      }
+    }
+    return Promise.resolve();
+  }
+
+  await renderApp();
+
   setOverlayVisible(host, !initiallyHidden);
 
-  // Start collecting persona-inference signals (tab-key usage, dwell time,
-  // scroll velocity). Passive listeners only — never block the page.
+  // Hold the loader for at least MIN_LOADER_HOLD_MS so the user sees the
+  // transition rather than a snap.
+  const elapsed = performance.now() - t0;
+  const holdRemaining = Math.max(0, MIN_LOADER_HOLD_MS - elapsed);
+  setTimeout(() => loader.dismiss(), holdRemaining);
+
+  // Start passive signal collection (carry-over from v0.1.1 — feeds the
+  // background SW's persona inference even though the popup no longer
+  // surfaces persona by default).
   startSignalCollection();
 
+  // Storage subscription — density + escape hatch.
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
 
-    if (changes['persona']) {
-      const next = coercePersona(changes['persona'].newValue);
-      if (next !== currentPersona) {
-        currentPersona = next;
-        currentTree = buildTree(route, currentPersona, location.href, domain);
-        render(currentTree, currentPersona, shadow);
+    if (changes['uiDensity']) {
+      const next = coerceDensity(changes['uiDensity'].newValue);
+      if (next !== currentDensity) {
+        currentDensity = next;
+        runtime.density = next;
+        host.setAttribute('data-density', next);
+        void renderApp();
       }
     }
 
-    // Visibility — driven by either key. Compute the merged "should be
-    // hidden" verdict from the change events themselves so we don't race
-    // the underlying storage reads. The popup writes both keys atomically
-    // via `chrome.storage.local.set`, but we still defend against partial
-    // events by treating undefined as "no change to this key" and consulting
-    // the cached current state.
     if (changes['extensionEnabled'] !== undefined || changes['showOriginal'] !== undefined) {
       const enabledChange = changes['extensionEnabled'];
       const showOriginalChange = changes['showOriginal'];
@@ -342,57 +362,37 @@ async function activate(domain: string, pack: RulePack): Promise<void> {
 }
 
 /**
- * Entry point. Awaits classification, then either activates or exits cleanly.
- *
- * v0.1.1: visible (non-DEV-gated) `[onegov]` log lines so users can diagnose
- * "nothing happens on this site" from the browser console without a dev build.
- * Each log explains the lifecycle stage and why the script is doing what it
- * does. Quiet on the happy path (one line saying "active" + one per re-render).
+ * Entry point. Resolve the site module first; bail without side effects when
+ * no module owns the current URL (other 5 ship-list sites).
  */
 async function main(): Promise<void> {
-  // eslint-disable-next-line no-console
-  console.info('[onegov] content script loaded on', location.href);
-
-  const statusReply = await sendMessage<GetStatusReply>({
-    type: 'get-status',
-    url: location.href,
-  });
-  const status: DomainStatus | null = statusReply?.status ?? null;
-  if (!status || status.kind !== 'verified') {
-    // eslint-disable-next-line no-console
-    console.info(
-      '[onegov] exiting — domain not verified (status:',
-      status?.kind ?? 'unreachable',
-      ')',
-    );
+  let url: URL;
+  try {
+    url = new URL(location.href);
+  } catch {
     return;
   }
 
-  const packReply = await sendMessage<LoadPackReply>({
-    type: 'load-pack',
-    domain: status.domain.domain,
-  });
-  const pack: RulePack | null = packReply?.pack ?? null;
-  if (!pack) {
-    // eslint-disable-next-line no-console
-    console.info('[onegov] exiting — no rule pack for', status.domain.domain);
+  const mod = resolveModule(url);
+  if (!mod) {
+    if (isDev()) {
+      // eslint-disable-next-line no-console
+      console.info('[onegov] no site module for', url.hostname, '— exiting');
+    }
+    // v0.2.0: only anaf.ro gets the takeover UI; other sites await per-site
+    // modules. Verified-domain badge on the toolbar is owned by the SW;
+    // nothing to do here.
     return;
   }
 
-  // eslint-disable-next-line no-console
-  console.info(
-    '[onegov] verified domain',
-    status.domain.domain,
-    '— pack has',
-    pack.routes.length,
-    'route(s); checking against pathname',
-    location.pathname,
-  );
+  if (isDev()) {
+    // eslint-disable-next-line no-console
+    console.info('[onegov] site module matched:', mod.domain, '— activating');
+  }
 
-  await activate(status.domain.domain, pack);
+  await activate(mod);
 }
 
 void main();
 
-// Empty export keeps `isolatedModules` + the IIFE bundle target happy.
 export {};

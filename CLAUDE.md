@@ -19,11 +19,15 @@ The non-negotiable invariants from `SPEC.md §3` define this product. If a chang
 
 ### The five invariants (memorize these)
 
-1. **Original DOM is never mutated.** Renderer mounts a shadow host as a sibling under `<body>`. Shadow root is `mode: 'closed'`. Page CSS cannot reach in; page JS cannot enumerate it.
-2. **No form data is touched.** v0.1 renders read-only views. v0.2 will dispatch submissions through the original form element so CSRF tokens, session cookies, and anti-bot fingerprints flow untouched.
-3. **No remote code execution.** Rule packs are declarative JSON. No `eval`, no `Function()`, no remote script loading, no `innerHTML` with rule-pack data.
-4. **No network requests in v0.1** beyond loading bundled assets. No analytics, no third-party scripts. CSP-tight.
-5. **The user can always escape.** One click on "afișează site-ul original" hides the entire overlay. One click in popup disables the extension on the current site.
+1. **Original DOM is never mutated** — relaxed for v0.2 takeover modules in three documented ways:
+   - Allowed: appended `<style id="onegov-hide-original">`, appended `<div id="onegov-loader">`, appended `<div id="onegov-root">` (shadow host).
+   - Allowed: setting `value` on a form input AND dispatching `submit` on a form, ONLY when the user explicitly initiated a submission via our UI (form bridging — read on intent, write on intent, never passively).
+   - Allowed (carry-over from v0.1.1): toggling `documentElement.style.overflow` while the overlay is visible (single inline style, fully reversible).
+   - Forbidden: removing or replacing existing nodes, modifying existing attributes (other than the explicit form-input writes above), mutation observers writing back to the page.
+2. **No form data is passively read.** Never iterate inputs, never read `.value` outside the explicit submit path, never log form contents. The bridge writes values from OUR controlled inputs into the original form on user intent only — see `packages/extension/src/sites/anaf.ro/bridge.ts` for the canonical contract.
+3. **No remote code execution.** No `eval`, no `Function()`, no remote script loading, no `innerHTML` with attacker-influenced data. Inlined SVG in the loader uses `innerHTML` for a controlled, build-time literal — that is the ONLY allowed `innerHTML` path.
+4. **No external network for the extension shell** — relaxed for v0.2 site modules: a site module MAY call public APIs under existing host_permissions (e.g. `webservicesp.anaf.ro` for the anaf takeover) when the call is initiated by user intent. No analytics, no telemetry, no third-party. Document any new external call in the threat model + the module's own README.
+5. **The user can always escape.** One click on the popup primary toggle (or "afișează site original" in the site module's status bar) removes `<style id="onegov-hide-original">` and hides the shadow host — original page becomes fully visible AND interactive immediately.
 
 Any PR that violates an invariant is rejected on sight, regardless of test results.
 
@@ -36,7 +40,7 @@ Any PR that violates an invariant is rejected on sight, regardless of test resul
 | Mode | Trigger | You DO | You NEVER DO |
 | --- | --- | --- | --- |
 | **Orchestrator** | "plan", "start job", "create tasks" | Create job specs, spawn workers in worktrees, handle merges + docs, spawn reviewer | Write implementation code |
-| **Worker** | "implement", "build", "fix", specific task | Create task branch, implement, write tests, write DONE report | Merge into group branch. Skip the DONE report. Skip tests. Touch the original DOM. |
+| **Worker** | "implement", "build", "fix", specific task | Create task branch, implement, write tests, write DONE report | Merge into group branch. Skip the DONE report. Skip tests. Mutate the original DOM outside the documented v0.2 carve-outs (see §invariants). |
 | **Reviewer** | Spawned by orchestrator after worker completes | Review code, run tests, run cross-browser smoke, file issues in REVIEW report | Write implementation code. Approve with open issues. Approve any change that weakens an invariant. |
 | **Single-agent** | Direct instruction without role context | Branch, implement, test, self-review, DONE report, docs, merge | Skip the branch, DONE report, or tests |
 | **Rule-pack author** | "write a pack for X site", "extend the verified list" | Inspect the live site, write declarative JSON, validate with `bun run validate-packs`, manually QA in Chrome + Firefox | Touch TypeScript source. Add new permissions to manifest without orchestrator approval. |
@@ -81,11 +85,11 @@ After implementation + tests pass, write `jobs/<job>/DONE-<task>.md`:
 ## Acceptance Criteria Check
 - [x] criterion — note
 ## Invariant Check
-- [x] Original DOM unchanged (only appended `<div id="onegov-root">` differs)
-- [x] No form data read or written
-- [x] No remote code, no `eval`/`Function()`/remote script
-- [x] No new network requests outside bundled assets
-- [x] "Afișează site-ul original" still hides overlay
+- [x] Original DOM untouched outside the documented carve-outs (loader style, loader div, shadow host, documentElement.style.overflow toggle, form-bridge writes only on user submit)
+- [x] No passive form data reads — bridge only writes on explicit submit intent
+- [x] No remote code, no `eval`/`Function()`/remote script (inlined SVG via controlled literal `innerHTML` is the only allowed `innerHTML` path)
+- [x] No new external network calls outside what the site module documents (e.g. anaf takeover MAY call `webservicesp.anaf.ro` — already in host_permissions)
+- [x] Escape hatch unchanged: removing `#onegov-hide-original` style + hiding shadow host restores live, interactive page
 ## Cross-Browser Check
 - [x] Chrome (latest stable) — loads, no console errors
 - [x] Firefox (latest stable) — loads, no console errors

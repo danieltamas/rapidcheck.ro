@@ -1,15 +1,14 @@
 /**
- * Popup tests — premium redesign (v0.1.1).
+ * Popup tests — v0.2.0 density chip redesign.
  *
  * Coverage:
  *   - statusPillFor() — pure mapping from DomainStatus → pill metadata
- *   - Popup renders the branded header + primary toggle + persona pill
+ *   - Popup renders the branded header + primary toggle + density chip
  *     + site status + footer
  *   - Primary toggle writes both `extensionEnabled` AND legacy `showOriginal`
  *     (back-compat with the existing content-script listener)
- *   - Persona override picker is HIDDEN by default; "schimbă" reveals it
- *   - Picking a persona writes to chrome.storage.local
- *   - Auto-inferred persona is rendered with the SW-provided reason
+ *   - Density chip shows three options with the current selection highlighted
+ *   - Picking a density writes `uiDensity` to chrome.storage.local
  *   - Site row shows the current eTLD+1 + variant from get-status reply
  *
  * Per the bun:test contract, top-level imports run before any `beforeAll`,
@@ -46,18 +45,18 @@ let stub: ChromeContentStub;
 function makeResponder(args: {
   status: DomainStatus | null;
   hostname: string | null;
-  inferredPersona?: 'pensioner' | 'standard' | 'pro' | 'journalist';
-  reason?: string;
 }): (req: Request) => Reply | undefined {
   return (req) => {
     if (req.type === 'get-status') {
       return { type: 'get-status:reply', status: args.status, hostname: args.hostname };
     }
     if (req.type === 'get-persona-inference') {
+      // v0.2 popup no longer asks for persona inference, but the SW handler
+      // still exists; keep a benign reply so other tests don't trip.
       return {
         type: 'get-persona-inference:reply',
-        persona: args.inferredPersona ?? 'standard',
-        reason: args.reason ?? 'încă învăț tiparul tău',
+        persona: 'standard',
+        reason: '',
         overridden: false,
       };
     }
@@ -74,11 +73,9 @@ beforeAll(async () => {
         domain: { domain: 'anaf.ro', category: 'gov', addedAt: '', source: '' },
       },
       hostname: 'anaf.ro',
-      inferredPersona: 'pensioner',
-      reason: 'sesiuni lungi, mișcare lentă',
     }),
   );
-  // No initial persona override → auto-inference surfaces.
+  // No initial uiDensity → defaults to 'simplu'.
   // extensionEnabled defaults to true.
 
   const popupModule = await import('../index.js');
@@ -180,48 +177,43 @@ describe('Popup — primary toggle', () => {
   });
 });
 
-describe('Popup — persona pill', () => {
-  it('renders the inferred persona by default (pensioner)', () => {
-    const label = document.querySelector('.pop-persona__label');
-    expect(label?.textContent).toBe('Vârstnic');
+describe('Popup — density chip (replaces persona pill in v0.2.0)', () => {
+  it('renders the three density options', () => {
+    const opts = document.querySelectorAll('.pop-density__option');
+    expect(opts.length).toBe(3);
+    const labels = Array.from(opts).map((el) => el.textContent);
+    expect(labels).toEqual(['Minimal', 'Simplu', 'Bogat']);
   });
 
-  it('renders the inference reason verbatim', () => {
-    const reason = document.querySelector('.pop-persona__reason');
-    expect(reason?.textContent).toContain('detectat automat');
-    expect(reason?.textContent).toContain('sesiuni lungi');
+  it('marks "Simplu" as the default selection', () => {
+    const selected = document.querySelector('.pop-density__option--selected');
+    expect(selected?.getAttribute('data-density')).toBe('simplu');
+    expect(selected?.getAttribute('aria-checked')).toBe('true');
   });
 
-  it('does NOT show the override picker by default', () => {
-    expect(document.querySelector('.pop-persona-picker')).toBeNull();
-  });
-
-  it('reveals the picker when "schimbă" is clicked', async () => {
-    const change = document.querySelector('.pop-persona__change') as HTMLButtonElement | null;
-    expect(change).not.toBeNull();
-    expect(change?.textContent).toBe('schimbă');
-    change?.click();
-    await new Promise<void>((r) => queueMicrotask(r));
-    const picker = document.querySelector('.pop-persona-picker');
-    expect(picker).not.toBeNull();
-    const opts = document.querySelectorAll('.pop-persona-option');
-    expect(opts.length).toBe(4);
-  });
-
-  it('writes the override when a persona option is clicked', async () => {
+  it('writes uiDensity to chrome.storage.local on click', async () => {
     const opt = document.querySelector(
-      '.pop-persona-option[data-persona="journalist"]',
+      '.pop-density__option[data-density="bogat"]',
     ) as HTMLButtonElement | null;
     expect(opt).not.toBeNull();
     opt?.click();
     await new Promise<void>((r) => queueMicrotask(r));
-    expect(stub.storage['persona']).toBe('journalist');
-    // Label updates to match the chosen persona.
-    const label = document.querySelector('.pop-persona__label');
-    expect(label?.textContent).toBe('Jurnalist');
-    // Reason now says the user picked it.
-    const reason = document.querySelector('.pop-persona__reason');
-    expect(reason?.textContent).toContain('ales manual');
+    expect(stub.storage['uiDensity']).toBe('bogat');
+
+    // Hint text reflects the new selection.
+    const hint = document.querySelector('.pop-density__hint');
+    expect(hint?.textContent).toContain('tot conținutul');
+  });
+
+  it('updates the visual selection after click', () => {
+    const selected = document.querySelector('.pop-density__option--selected');
+    expect(selected?.getAttribute('data-density')).toBe('bogat');
+  });
+
+  it('no longer renders the legacy persona pill or picker', () => {
+    expect(document.querySelector('.pop-persona__label')).toBeNull();
+    expect(document.querySelector('.pop-persona-picker')).toBeNull();
+    expect(document.querySelector('.pop-persona-option')).toBeNull();
   });
 });
 
