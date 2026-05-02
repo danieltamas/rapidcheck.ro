@@ -10,6 +10,13 @@
     "types": []
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["dist", "node_modules", "tests"],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "tests",
+    "src/**/__tests__/**",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
   "references": [{ "path": "../core" }]
 }

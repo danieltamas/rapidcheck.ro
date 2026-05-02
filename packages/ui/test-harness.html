@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>onegov.ro — UI test harness</title>
+  <style>
+    /* The harness page itself sits OUTSIDE the shadow root. These styles
+       only style the page chrome (titles, panel borders) — never the
+       rendered components, which live inside their own closed shadow root
+       and inherit only :host design tokens. */
+    body {
+      margin: 0;
+      font-family:
+        Arial,
+        Calibri,
+        Verdana,
+        Tahoma,
+        Trebuchet MS,
+        Ubuntu,
+        sans-serif;
+      background: #eef2f6;
+      color: #1a1a1a;
+    }
+    header {
+      padding: 24px 16px;
+      background: #003b73;
+      color: #ffffff;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+    header p {
+      margin: 8px 0 0;
+      opacity: 0.85;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+    }
+    .panel__title {
+      margin: 0;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #003b73;
+      background: #f7f9fc;
+      border-bottom: 1px solid #d0d7de;
+    }
+    .panel__title small {
+      font-weight: 400;
+      color: #5b6b7d;
+      margin-left: 8px;
+    }
+    .panel__host {
+      padding: 0; /* shadow root provides its own padding */
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>onegov.ro — UI test harness</h1>
+    <p>
+      Same SemanticTree, four personas. Open this file directly in any
+      Chromium browser after <code>bun run build:harness</code>.
+    </p>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2 class="panel__title">standard <small>default</small></h2>
+      <div class="panel__host" id="host-standard"></div>
+    </section>
+    <section class="panel">
+      <h2 class="panel__title">pensioner <small>≥18px, single column</small></h2>
+      <div class="panel__host" id="host-pensioner"></div>
+    </section>
+    <section class="panel">
+      <h2 class="panel__title">pro <small>dense, keyboard hints</small></h2>
+      <div class="panel__host" id="host-pro"></div>
+    </section>
+    <section class="panel">
+      <h2 class="panel__title">journalist <small>tables + copy-as-CSV</small></h2>
+      <div class="panel__host" id="host-journalist"></div>
+    </section>
+  </div>
+
+  <script type="module">
+    // The harness imports the bundled renderer from the dist directory.
+    // Build first via `bun run build:harness` (see docs/ui-harness.md).
+    import { render } from './dist/harness/renderer.bundle.js';
+
+    /** A SemanticTree mirroring what the rule pack for anaf.ro homepage
+     *  would emit. Keeping it inline so the harness needs zero external
+     *  dependencies beyond the bundled renderer. */
+    const tree = {
+      url: 'https://anaf.ro/',
+      domain: 'anaf.ro',
+      layout: 'landing',
+      nodes: [
+        { id: 'page-title', type: 'heading', data: { text: 'ANAF — portal public', level: 1 } },
+        {
+          id: 'intro',
+          type: 'paragraph',
+          data: {
+            text: 'Bun venit pe portalul Agenției Naționale de Administrare Fiscală.',
+          },
+        },
+        {
+          id: 'main-cta',
+          type: 'link',
+          data: { text: 'Verificare CUI / CIF', href: 'https://anaf.ro/cui' },
+        },
+        {
+          id: 'rules',
+          type: 'list',
+          data: {
+            items: [
+              'Verificare în registrul ANAF',
+              'Plăți online prin ghișeul.ro',
+              'Programare online la ghișeu',
+            ],
+          },
+        },
+        {
+          id: 'taxes-table',
+          type: 'table',
+          data: {
+            headers: ['Anul', 'Suma datorată', 'Termen scadent'],
+            rows: [
+              ['2024', '1500 RON', '15 mar. 2025'],
+              ['2025', '1800 RON', '15 mar. 2026'],
+              ['2026', '2000 RON', '15 mar. 2027'],
+            ],
+          },
+        },
+        {
+          id: 'contact-form',
+          type: 'form',
+          data: {
+            id: 'contact',
+            fields: [
+              { name: 'cui', label: 'CUI', type: 'text', placeholder: 'Ex: 14841555', required: true },
+              { name: 'email', label: 'Email', type: 'email' },
+              {
+                name: 'subiect',
+                label: 'Subiect',
+                type: 'select',
+                options: [
+                  { value: 'gen', label: 'Întrebare generală' },
+                  { value: 'tehn', label: 'Problemă tehnică' },
+                ],
+              },
+              { name: 'mesaj', label: 'Mesaj', type: 'textarea' },
+            ],
+          },
+        },
+        {
+          id: 'evil-link',
+          type: 'link',
+          data: { text: 'Bloked: javascript: link', href: 'javascript:alert(1)' },
+        },
+      ],
+    };
+
+    const personas = ['standard', 'pensioner', 'pro', 'journalist'];
+    for (const persona of personas) {
+      const host = document.getElementById('host-' + persona);
+      const shadow = host.attachShadow({ mode: 'closed' });
+      render(tree, persona, shadow);
+    }
+  </script>
+</body>
+</html>

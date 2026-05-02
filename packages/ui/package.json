@@ -15,6 +15,7 @@
   },
   "scripts": {
     "build": "tsc --build",
+    "build:harness": "bun run scripts/build-harness.ts",
     "test": "bun test"
   },
   "dependencies": {
