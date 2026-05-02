@@ -135,3 +135,52 @@ Follow-ups filed for the orchestrator:
 **Process incident — orchestrator CWD drift:** during the merge sequence, the orchestrator's bash session CWD had drifted into the Track 3 reviewer's worktree (after a `cd .claude/worktrees/<id>` for status checks without `cd` back). The first `git merge --squash` then silently applied to the reviewer's `ui-components-rebase-test` branch instead of `main`. No data lost (no push, no commit-to-main with stray content), but the merge had to be redone after `cd /Users/danime/Sites/onegov.ro`. Memory entry filed: `feedback_orchestrator_cwd_hygiene.md`. Going forward: use `git -C <abs-path>` or always `cd` back to main before `git merge`/`commit`.
 
 **Cleanup:** deleted task branch, stray rebase-test branch, both worktrees + alias branches.
+
+---
+
+## 2026-05-02 — Track 4a (icon state machine) — merged
+
+**Squash commit:** `f628b64` + script-fix `3d267b7`
+**Source branch:** `job/v0.1-foundation/extension-icon` (2 worker commits)
+**Reviewer verdict:** PASS, 0 blockers, 4 warnings, 4 suggestions
+
+**Delivered:**
+- `decide-icon.ts` (76 lines, pure): `decideIcon(url, list) → 'green' | 'gray' | 'red'`. No `chrome.*` dep. 20 unit tests.
+- `index.ts` (rewritten from Track 1 stub, 93 lines): `chrome.*` glue. Wires `webNavigation.onCommitted` (frameId 0 only), `tabs.onActivated` re-apply, `runtime.onInstalled` initial pass. 14 SW glue tests with hand-rolled `chrome-stub.ts` (122 lines).
+- 34 new tests; total now 113 core + 84 UI + 34 extension = **231 tests**.
+- Roster bundled inline via Vite JSON import — no network roundtrip.
+
+**Bundle-size deviation:** background.js 113 KB gzipped vs spec's "<5KB" target. Caused by `psl` (43 KB) + `idna-uts46-hx` (62 KB) pulled by `verifyDomain` from `@onegov/core`. **ACCEPTED** (reviewer Option A) because background SW is loaded once per session — no per-page latency cost. Track 4b's content script CANNOT use the same pattern; needs background-SW message-passing for verification (filed in Track 4b spec).
+
+**Other deviations** (worker, all justified, reviewer accepted):
+- SW source 93 lines vs "~50" target (defensive doc header documents tab-without-URL, tab-closed-mid-flight, graceful-degrade).
+- `packages/extension/tsconfig.json` minimal `exclude` for `src/**/__tests__/**`.
+- Deep-relative import of `verifyDomain` from `'../../../core/src/domain-verifier.js'` — saves 15KB by skipping the barrel's Zod pull. Recommend follow-up: clean `@onegov/core/lookup` sub-barrel.
+
+**Orchestrator script fixup (commit `3d267b7`):** Track 4a added 34 tests in `packages/extension/src/background/__tests__/` but didn't update root `bun run test` script. Added `test:extension` and chained it. `bun run test` (script) now runs all 231 tests in three isolated processes.
+
+**Pre-existing main regression (NOT caused by Track 4a):** `bun test` (raw command, single process) fails on the no-DOM canary because Track 3's `happy-dom` GlobalRegistrator pollutes globalThis cross-file. Workaround: `bun run test` (script). Filed as task #16 follow-up.
+
+**State of main after Track 4a + Track 4a-fixup:**
+- 231 tests passing via `bun run test`
+- 7 rule-pack files validate
+- background.js 113 KB gz, content.js empty stub (97 B gz), popup.js 5.24 KB gz
+- 73 verified domains
+- 0 `node-forge` in deps
+
+**Cleanup:** deleted task branch, both worktrees + alias branches. No residual.
+
+---
+
+## What's left for v0.1
+
+| Track | Status | Visible signal when merged |
+| --- | --- | --- |
+| 1 — scaffold | ✅ merged | extension loads, does nothing |
+| 2 — core engine | ✅ merged | (engine logic, no UI yet) |
+| 3 — UI components | ✅ merged | (UI library, not wired yet) |
+| 4a — icon state machine | ✅ merged | green icon on `anaf.ro`, gray off-list, red on synthetic lookalike (after Track 4b wires the popup) |
+| 5 — rule packs + roster | ✅ merged | (data ready, awaits content script) |
+| **4b — content script + popup** | 📋 spec written, ready to spawn | overlay renders on `anaf.ro` etc. — the headline demo |
+| 4c — Playwright E2E + DOM-integrity test | filed as follow-up | enforces invariants 1 + 4 contractually |
+| Various small follow-ups | filed | invariant lint rules, real icons, packaging, slim-deps, no-DOM-canary fix |
