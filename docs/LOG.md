@@ -82,3 +82,31 @@ Follow-ups filed for the orchestrator:
 - SLD-prefix branch returns a real Levenshtein distance value (e.g. 7 for `anaf-portal.ro`) which UI consumers must NOT interpret as edit-count.
 
 **Cleanup:** deleted task branch + stale alias branch, removed `.claude/worktrees/agent-a0387e73/`.
+
+---
+
+## 2026-05-02 — Track 5 (rule packs + verified roster) — merged with one orchestrator schema patch
+
+**Squash commit:** `911cb13` + prerequisite schema patch `d63ca66`
+**Source branch:** `job/v0.1-foundation/rule-packs` (4 worker commits)
+**Reviewer verdict:** FAIL on first pass (1 blocker), then implicit PASS after orchestrator schema patch.
+
+**Delivered:**
+- 6 rule packs covering the v0.1 ship list (anaf.ro, dgep.mai.gov.ro, portal.just.ro, ghiseul.ro, rotld.ro, itmcluj.ro) — 10 routes total, all 4 personas distinct per pack
+- Verified-domain roster expanded 15 → 73 entries (72 gov + 1 public-interest), bumped to 0.1.0, every entry sourced
+- `scripts/validate-packs.ts` hardened from parse-only stub to a full validator with dotted JSON path errors
+
+**Reviewer's blocker:** all 6 packs used `_comment` annotation strings (10 route-level + 68 extract-level + 15 persona-level = 93 total) which `@onegov/core/validate()`'s strict Zod schemas rejected as unknown keys. Production loader would have refused to load every shipped pack.
+
+**Orchestrator resolution:** patched `packages/core/src/rule-pack-loader.ts` (commit `d63ca66`) to add `_comment: z.string().optional()` to ExtractRuleSchema, RouteSchema, PersonaOverrideSchema. `.strict()` preserved on every other key. Added 3 regression tests (113 → 116 ... actually 110→113 because we already added 3 here). All 6 packs empirically validate via the canonical `@onegov/core/validate` after the patch.
+
+**Live-site discoveries flagged in commit body:**
+- anaf.ro public CUI lookup is API-only at webservicesp.anaf.ro; pack covers homepage + servicii_online instead
+- ghiseul.ro behind Cloudflare managed challenge (clears in user browser; not a blocker)
+- dgep.mai.gov.ro appointment booking is OFF-domain at hub.mai.gov.ro
+- portal.just.ro self-admitted-broken advisory confirmed verbatim
+- itmcluj.ro content lives in synthetic iframe via `<TEXTAREA id="txtSource">` — v0.1 selectors will silently extract zero; v0.2 needs a frame-walker. Filed as known issue.
+
+**Post-merge gate on `main`:** all green — `bun run check` exit 0, `bun test` 113/113, `bun run validate-packs` 7 files OK, `bun run build` clean (popup.js.gz still 5.24 KB), 0 node-forge.
+
+**Cleanup:** deleted task branch + stale alias branch + worktree.
