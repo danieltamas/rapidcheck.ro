@@ -288,3 +288,32 @@ Verification:
 - `bun run check` → exit 0
 - `bun run test` → all green (113 core + 84 ui + 71 extension; the 71 extension includes the new 37 icon-smoke cases)
 - `bun run build` → exit 0; PNGs copied to `dist/extension/icons/`
+
+---
+
+## 2026-05-02 — v0.1.1 polish: premium UX overhaul — merged
+
+**Squash commit:** `ec709df`
+**Source branch:** `job/v0.1.1-polish/premium-ux` (5 worker commits + 1 DONE-report commit)
+**Verdict:** worker DONE → orchestrator inline gate (fast-track per owner) → PASS → merged.
+
+**Why:** owner reviewed the v0.1 release-candidate and flagged three concrete gaps: (1) persona was user-picked (felt like work); (2) popup felt amateur (atomic components stacked with default spacing); (3) no UI visible on anaf.ro (overlay was an invisible-floating-div with no positioning).
+
+**What landed:**
+- **Premium popup rewrite:** branded blue header strip + large pill-style primary toggle ("Aplică interfața onegov", default ON, replaces the previous backwards-framed "Afișează site-ul original") + auto-inferred persona pill with classification reason in muted text + inline "schimbă" override picker (only on click) + current-tab status row + hairline footer. 340px wide, hand-rolled CSS, no new deps.
+- **Theme tokens (additive):** font-size scale, spacing scale, neutral grays, shadow scale, radius scale, motion durations. Existing tokens preserved.
+- **Persona variants reskinned** + new `shell.tsx` (shared chrome) + `diagnostic.tsx` (sparse-extraction fallback rendered when `tree.nodes.length < 3`). Addresses "I don't see any UI" — something always renders.
+- **Full-viewport overlay take-over:** shadow host now `position: fixed; inset: 0; z-index: 2147483647` with opaque persona-themed background. Page underneath visually replaced (DOM byte-identical, invariant #1 holds). One scoped exception: `documentElement.style.overflow = 'hidden'` while shown, restored on every escape. Documented inline.
+- **Auto-persona inference:** rules-based classifier in background SW; passive signal collection in content script (Tab key usage, scroll velocity, click precision, dwell time, distinct-gov-sites count). Rules: `pro` if ≥10 distinct gov sites in 30d OR Tab usage >30% OR avg dwell <30s; `pensioner` if avg dwell >120s + slow scroll + low click precision; `journalist` if ≥5 gov sites in 7d + Tab usage >15% + spread time-of-day; else `standard`. Privacy: zero signals leave device.
+
+**Tests:** 282 → **375 (+93)** across 23 files (113 core + 106 ui + 156 extension). All pass.
+
+**Bundles (pre / post):** background.js 129 → 130 KB gz; content.js 11.2 → 13.8 KB gz (83% headroom); popup.js 7.4 → 8.2 KB gz (86% headroom); popup.css 10 KB. **Ship size 672 KB / 2 MB cap** (33%).
+
+**Five-invariant audit:** worker-confirmed by grep — only the appended `<div id="onegov-root">` + the documented overflow toggle mutate the DOM; no form data access; no remote code; no external network; escape works (primary toggle hides host AND restores overflow).
+
+**Inline gate:** all green. node-forge count: 0.
+
+**Manual smoke deferred to owner** — Playwright MCP doesn't support Chrome `--load-extension`. After reload of unpacked extension, owner should see overlay visibly take over the viewport on anaf.ro, premium popup with inferred persona + override pathway, primary on/off toggle works.
+
+**Cleanup:** deleted task branch + worktree + alias branches.
