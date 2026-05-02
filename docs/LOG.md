@@ -60,3 +60,25 @@ Follow-ups filed for the orchestrator:
 - `04-package-script.md` — `scripts/package.ts` (Chrome zip) + bundle-size assertion
 - `05-playwright-e2e-bootstrap.md` — Chromium-only Playwright + DOM-integrity + network-audit specs
 - Tracks 2 / 3 / 4 / 5 — now unblocked, can run in parallel per CLAUDE.md isolation rules
+
+---
+
+## 2026-05-02 — Track 2 (core engine) — merged with one fixup
+
+**Squash commit:** `03d02cf` + fixup `54bdee7`
+**Source branch:** `job/v0.1-foundation/core-engine` (7 worker commits)
+**Reviewer verdict:** PASS, 0 blockers, 1 warning, 4 suggestions
+
+**Delivered:**
+- `domain-verifier.ts`, `lookalike.ts`, `rule-pack-loader.ts`, `semantic-extractor.ts`, `persona.ts` — all five core modules implemented
+- 110 tests across 7 files, 190 expect() assertions, all passing
+- Local `psl-shim.d.ts` (psl's types-condition omission workaround)
+- SLD-prefix suffix-attack detector (catches `anaf-portal.ro`, `anafportal.ro`, `onrc-payments.ro` which pure Levenshtein at distance ≤ 2 cannot)
+
+**Process incident:** worker added the SLD-prefix branch (35 lines in `lookalike.ts`) but did NOT commit before reporting DONE. Reviewer ran tests against the dirty worktree and got 110/110 PASS. Squash-merge silently dropped the branch, breaking 4 tests on main. Recovery: copied the missing lines from `.claude/worktrees/agent-a0387e73/packages/core/src/lookalike.ts` to main as fixup commit `54bdee7`. **CLAUDE.md and ONSTART.md updated to require `git status --porcelain` cleanliness check before squash-merge and before reviewer runs tests.** Memory entry filed: `feedback_squash_merge_clean_worktree.md`.
+
+**Notable behaviour for downstream tracks:**
+- `psl` collapses every `*.gov.ro` host to eTLD+1 `gov.ro`. The single `gov.ro` roster entry covers ALL `.gov.ro` subdomains (correct, since Romanian gov controls `.gov.ro` registration). Granular `mai.gov.ro` / `data.gov.ro` roster entries are metadata only.
+- SLD-prefix branch returns a real Levenshtein distance value (e.g. 7 for `anaf-portal.ro`) which UI consumers must NOT interpret as edit-count.
+
+**Cleanup:** deleted task branch + stale alias branch, removed `.claude/worktrees/agent-a0387e73/`.
