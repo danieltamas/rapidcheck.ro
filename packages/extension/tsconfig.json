@@ -10,6 +10,12 @@
     "types": ["chrome"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["dist", "node_modules", "tests", "vite.config.ts"],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "tests",
+    "src/**/__tests__/**",
+    "vite.config.ts"
+  ],
   "references": [{ "path": "../core" }, { "path": "../ui" }]
 }
