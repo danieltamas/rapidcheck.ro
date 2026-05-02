@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="state: lookalike">
+  <title>lookalike state</title>
+  <!-- Shield silhouette with white halo. -->
+  <path fill="#FFFFFF"
+        d="M8 6 H56 a4 4 0 0 1 4 4 V36 a8 8 0 0 1 -2 5 L34 60 a4 4 0 0 1 -4 0 L6 41 a8 8 0 0 1 -2 -5 V10 a4 4 0 0 1 4 -4 Z"/>
+  <!-- Accessible red (#C62828) — material design red 800. Contrast 5.6:1
+       against white, well above the AA non-text minimum. -->
+  <path fill="#C62828"
+        d="M12 10 H52 a2 2 0 0 1 2 2 V35 a6 6 0 0 1 -1.5 3.8 L34 56 a2 2 0 0 1 -4 0 L11.5 38.8 A6 6 0 0 1 10 35 V12 a2 2 0 0 1 2 -2 Z"/>
+  <!-- Exclamation: rounded bar above, separate dot below. Both white.
+       The bar is 6 units wide so it survives anti-aliasing at 8px. -->
+  <rect x="29" y="20" width="6" height="18" rx="2" ry="2" fill="#FFFFFF"/>
+  <circle cx="32" cy="44" r="3.5" fill="#FFFFFF"/>
+</svg>

@@ -224,3 +224,67 @@ Follow-ups filed for the orchestrator:
 **Cleanup:** deleted task branch + reviewer branch + both worktrees + alias branches. Only Track 6 (icons) worktree remains, still running.
 
 **The extension is now functionally complete** for v0.1. Track 6 (real branded icons) is the last in-flight piece. After Track 6 lands and the user reloads the unpacked extension, the headline demo is live.
+
+---
+
+## 2026-05-02 — Track 6: brand mark + state-shield icon set
+
+**Task:** `jobs/v0.1-foundation/06-brand-icons.md`
+**Branch:** `job/v0.1-foundation/brand-icons`
+
+Replaced Track 1's flat-colour placeholder PNGs with a real branded icon
+set. The mark is a stylised lowercase **g** in a soft-cornered square (the
+project name "onegov" → one + g(ov)); the state shield is composed into
+the bottom-right corner at 32 / 48 / 128 px, and at 16 px the entire mark
+ground swaps to the state colour (Approach B from the task spec — the
+corner shield would be < 6 px tall at toolbar size and blob into noise).
+
+What landed:
+
+- **SVG sources** in `packages/extension/icons-src/`: `brand-mark.svg`,
+  `state-{green,gray,red}.svg`. ~4 KB combined; flat shapes, no filters,
+  no gradients, no embedded raster, no font dependencies (letterforms are
+  paths).
+- **Generator** at `scripts/gen-icons.ts` — wraps `@resvg/resvg-js`
+  (wasm, no native deps). Composes brand + shield into per-(state, size)
+  SVG strings, rasterises with deterministic output. ~180 lines, TS strict.
+- **12 generated PNGs** in `packages/extension/icons/` (green / gray / red
+  × 16 / 32 / 48 / 128). Largest 2.97 KB, all under the 5 KB budget;
+  total payload ~16 KB.
+- **`scripts/gen-placeholder-icons.ts` deleted** — superseded.
+- **`packages/extension/src/manifest.json`** — added top-level `icons`
+  field referencing the green-128 / 48 / 16 set as the canonical brand
+  reference for the eventual Chrome Web Store listing.
+- **Docs**: `docs/brand.md` (full brand guidelines, colour tokens, state
+  semantics, anti-impersonation rules), `packages/extension/icons-src/README.md`
+  (regeneration workflow + hard rules for editing the SVGs).
+- **Smoke test** at `packages/extension/src/__tests__/icons.test.ts` —
+  verifies every PNG exists, decodes to its declared size, and stays
+  under the 5 KB budget.
+
+Notable decisions:
+
+- **Approach B for sizes.** State colour carries the meaning at 16 px;
+  full identity at 32 px and up. Verified by inspecting the generated
+  PNGs — the three 16 px variants are immediately distinguishable by
+  colour even without the shield glyph.
+- **Renderer = `@resvg/resvg-js`**, not `sharp`. Resvg is wasm-backed,
+  has no native deps, no `node-forge` in its tree, and supports the
+  subset of SVG we need (rects, paths, fill-rule). Verified post-install:
+  `bun pm ls 2>&1 | grep -ci node-forge` → 0.
+- **PNGs committed.** Idempotent generation makes this safe; contributors
+  don't need the toolchain just to read the icons in source.
+
+Tests added:
+
+- `packages/extension/src/__tests__/icons.test.ts` — 37 cases (existence,
+  PNG signature, IHDR width/height matches filename, byte budget,
+  combined-payload ceiling).
+
+Verification:
+
+- `bun pm ls 2>&1 | grep -ci node-forge` → 0
+- `bun run gen-icons` → 12 PNGs, 15 903 B total
+- `bun run check` → exit 0
+- `bun run test` → all green (113 core + 84 ui + 71 extension; the 71 extension includes the new 37 icon-smoke cases)
+- `bun run build` → exit 0; PNGs copied to `dist/extension/icons/`

@@ -77,6 +77,16 @@ background service worker, the content script, and the popup Preact app.
 The build copies `manifest.json`, `popup.html`, `popup.css`, and `icons/`
 into `dist/extension/`.
 
+### Brand icons
+
+The 12 toolbar PNGs (`icons/{green,gray,red}-{16,32,48,128}.png`) are
+generated artifacts of four SVG sources in `packages/extension/icons-src/`:
+`brand-mark.svg` plus `state-{green,gray,red}.svg`. Composition follows
+**Approach B** (state-coloured monogram at 16 px; full mark + corner shield
+at 32 / 48 / 128 px) — `scripts/gen-icons.ts` does the swap-and-rasterise.
+PNGs are committed because the renderer (`@resvg/resvg-js`) is deterministic.
+Full guidelines in `docs/brand.md`.
+
 ## Manifest (current — v0.1 ship list)
 
 Permissions: `storage`, `scripting`, `activeTab`, `webNavigation`. Nothing
@@ -107,6 +117,7 @@ Chrome-desktop-only. Firefox parity (and the gecko key) lands in v0.2.
 | `bun run build` | `scripts/build-extension.ts` → three sequential Vite builds → `dist/extension/` |
 | `bun run dev` | Vite watch (popup-only by default) |
 | `bun run validate-packs` | Walks `rule-packs/` and JSON-parses each file (full Zod validation arrives with Track 2) |
+| `bun run gen-icons` | Reads SVG sources in `packages/extension/icons-src/`, composes brand mark + state shields, rasterises 12 PNGs (3 states × 4 sizes) into `packages/extension/icons/`. Renderer: `@resvg/resvg-js` (wasm, no native deps, no `node-forge`). Output is deterministic; PNGs are committed. |
 | `bun test` | All workspace test suites |
 
 Vite is invoked once per output bundle because each entry has a different
@@ -134,4 +145,4 @@ Tracked in `jobs/v0.1-foundation/` after this scaffold lands:
 2. **Track 3** — eight atomic Preact components, four persona variants, `theme.css` token set, `test-harness.html`.
 3. **Track 4** — wire background icon state machine, content script DOM extraction + shadow mount, full popup UI.
 4. **Track 5** — the verified-domain roster (≥30 entries), the six v0.1 rule packs (anaf, dgep, portal.just, ghiseul, rotld, itmcluj).
-5. **Follow-up tasks** — full custom invariant ESLint rules, `scripts/gen-icons.ts`, `scripts/package.ts` (zip), bundle-size assertion, Playwright E2E (Chromium-only in v0.1), Firefox-parity task for v0.2.
+5. **Follow-up tasks** — full custom invariant ESLint rules, `scripts/package.ts` (zip), bundle-size assertion, Playwright E2E (Chromium-only in v0.1), Firefox-parity task for v0.2. *(`scripts/gen-icons.ts` shipped under Track 6; see `docs/brand.md`.)*

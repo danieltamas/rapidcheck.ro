@@ -14,6 +14,7 @@
     "build": "bun run scripts/build-extension.ts",
     "dev": "ONEGOV_TARGET=popup vite build --watch --config packages/extension/vite.config.ts",
     "validate-packs": "bun run scripts/validate-packs.ts",
+    "gen-icons": "bun run scripts/gen-icons.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint packages scripts",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.9.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/chrome": "^0.0.270",
     "@typescript-eslint/eslint-plugin": "^8.8.0",
     "@typescript-eslint/parser": "^8.8.0",

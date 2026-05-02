@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="onegov brand mark">
+  <title>onegov brand mark</title>
+  <!-- Brand background: PANTONE 280C (#003B73). Rounded square, ~19% corner
+       radius — soft enough to feel modern, square enough to read at 16px. -->
+  <rect x="0" y="0" width="128" height="128" rx="24" ry="24" fill="#003B73"/>
+  <!-- Stylised lowercase "g" drawn as a single continuous silhouette.
+       Geometry on the 128 grid:
+         bowl     center (52, 54)   outer-r 28   stroke-width 12
+         stem     right side of bowl, x=68..80, y=26..96
+         tail     full-width crossbar at y=84..96 connecting bowl to stem
+                  and forming the descender hook.
+       Drawing the bowl + stem + tail as one fill keeps the shape a single
+       confident silhouette at small sizes (no orphaned tabs). -->
+  <path fill="#FFFFFF" fill-rule="evenodd"
+        d="M52 26
+           a28 28 0 1 0 0 56
+           h16
+           V96
+           h12
+           V26
+           Z
+           M52 38
+           a16 16 0 1 1 0 32
+           a16 16 0 1 1 0 -32
+           Z"/>
+</svg>
