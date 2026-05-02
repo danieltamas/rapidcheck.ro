@@ -255,7 +255,42 @@ export function findNearest(hostname: string, list: VerifiedDomainList): Lookali
     }
   }
 
-  // 3. Levenshtein — find the closest verified entry within MAX distance.
+  // 3. Suffix-attack detection. A common phishing pattern is to register
+  // `<verified-sld><separator><tail>.<tld>` — `anaf-portal.ro`,
+  // `anafportal.ro`, `anaf.gov.ro.example.ro`. Pure Levenshtein at distance
+  // ≤ 2 cannot catch these because the inserted tail is many edits long.
+  // Spec (task §lookalike) groups these under `reason: 'levenshtein'`.
+  if (candidateSplit) {
+    const suffixHit = list.domains.find((d) => {
+      const verifiedSplit = splitDomain(d.domain);
+      if (!verifiedSplit) return false;
+      // Same TLD: candidate SLD starts with the verified SLD followed by a
+      // separator (`-`, `.`, `_`) or directly concatenated (`anafportal`).
+      // Bare equality is excluded above (verified hit already returned null).
+      if (verifiedSplit.tld !== candidateSplit.tld) return false;
+      const vSld = verifiedSplit.sld;
+      const cSld = candidateSplit.sld;
+      if (cSld === vSld) return false;
+      if (!cSld.startsWith(vSld)) return false;
+      // Anything beyond the verified SLD counts as a suffix attack candidate.
+      const tail = cSld.slice(vSld.length);
+      return tail.length > 0;
+    });
+    if (suffixHit) {
+      const verifiedSplit = splitDomain(suffixHit.domain);
+      const distance = verifiedSplit
+        ? levenshtein(folded, suffixHit.domain)
+        : MAX_LOOKALIKE_DISTANCE + 1;
+      return {
+        kind: 'lookalike',
+        nearest: suffixHit,
+        distance,
+        reason: 'levenshtein',
+      };
+    }
+  }
+
+  // 4. Levenshtein — find the closest verified entry within MAX distance.
   let bestEntry: VerifiedDomain | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
   // Use the folded candidate so Punycode + Cyrillic reach the metric in their
