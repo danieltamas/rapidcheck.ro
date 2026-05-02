@@ -184,3 +184,43 @@ Follow-ups filed for the orchestrator:
 | **4b — content script + popup** | 📋 spec written, ready to spawn | overlay renders on `anaf.ro` etc. — the headline demo |
 | 4c — Playwright E2E + DOM-integrity test | filed as follow-up | enforces invariants 1 + 4 contractually |
 | Various small follow-ups | filed | invariant lint rules, real icons, packaging, slim-deps, no-DOM-canary fix |
+
+---
+
+## 2026-05-02 — Track 4b (content script + popup + SW messaging) — merged
+
+**Squash commit:** `a31ebe0`
+**Source branch:** `job/v0.1-foundation/extension-content` (5 worker commits)
+**Reviewer verdict:** PASS, **0 blockers, 0 warnings, 3 🟢 suggestions** (filed as follow-ups)
+
+**THIS IS THE INTEGRATION.** After this commit, the extension actually does its job: visit `anaf.ro` and the persona-adapted overlay renders inside a closed shadow root over the original page. The five invariants are LIVE for the first time, all empirically verified by the reviewer.
+
+**Architecture:** message-passing (Option 2 from Track 4b spec). Background SW owns the verifier (psl + idna + Zod loader); content script + popup talk to it via `chrome.runtime.sendMessage` with two typed requests (`get-status`, `load-pack`). This kept content.js at 11 KB gz instead of ~115 KB if it had imported `verifyDomain` directly (the lesson from Track 4a's bundle).
+
+**Five-invariant verification (all PASS, empirically):**
+1. **Original DOM untouched** — single `appendChild` for the shadow host; tests assert `documentElement.outerHTML` byte-equality on negative paths and per-element equality on happy path
+2. **No form data** — only doc comments mention `FormData`/`.elements`; `SerializableEl` exposes neither
+3. **No remote code** — zero `eval`/`new Function`/string-timer/`outerHTML=`/`document.write`; `innerHTML=` only in test fixtures with literals
+4. **No external network** — single production `fetch` against `chrome.runtime.getURL` in `background/messaging.ts:63`; bundle inspection confirms only one `fetch` site post-build
+5. **Escape hatch** — popup writes `showOriginal` to storage; content listener flips `host.style.display`; tests cover live toggle + initial-load-hidden case
+
+**Bundle sizes (post-merge, on `main`):**
+| Bundle | Raw | Gzipped | Cap | Headroom |
+|---|---|---|---|---|
+| background.js | 534 KB | 129 KB | n/a | (Track 4a budget; psl + idna + Zod) |
+| content.js | 32.8 KB | **11.2 KB** | 80 KB | 86% |
+| popup.js | 21.5 KB | **7.4 KB** | 60 KB | 88% |
+| Total dist | 1.83 MB | — | 2 MB | 9% |
+
+**Tests:** project total **282 / 282 passing** (113 core + 84 ui + 85 extension), 457 expect() calls. `bun pm ls | grep -ci node-forge` = 0.
+
+**Vite config addition:** copies `rule-packs/*.json` into `dist/extension/rule-packs/` so the unpacked extension can `chrome.runtime.getURL` them at runtime. Mirrors the existing icon-copy pattern.
+
+**3 follow-up suggestions filed (all 🟢, none blocking):**
+- Stale comment in `decide-icon.ts:21-27` (says SW does not validate packs — outdated since Track 4b)
+- `_verified-domains.json` is `web_accessible_resources`-listed and therefore install-fingerprintable; consider hashing or moving to a different load path for v0.2
+- Tiny popup hydration flash on `showOriginal` initial render
+
+**Cleanup:** deleted task branch + reviewer branch + both worktrees + alias branches. Only Track 6 (icons) worktree remains, still running.
+
+**The extension is now functionally complete** for v0.1. Track 6 (real branded icons) is the last in-flight piece. After Track 6 lands and the user reloads the unpacked extension, the headline demo is live.
