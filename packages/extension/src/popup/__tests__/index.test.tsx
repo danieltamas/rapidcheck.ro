@@ -136,16 +136,19 @@ describe('statusPillFor()', () => {
 });
 
 describe('Popup — branded header', () => {
-  it('renders the wordmark and tagline', () => {
-    const name = document.querySelector('.pop-header__name');
+  it('renders the inlined onegov logo and tagline (v0.1.2)', () => {
+    const logo = document.querySelector('.pop-header__logo');
     const tag = document.querySelector('.pop-header__tagline');
-    expect(name?.textContent).toBe('onegov');
+    expect(logo).not.toBeNull();
+    expect(logo?.tagName.toLowerCase()).toBe('img');
+    expect(logo?.getAttribute('alt')).toBe('onegov');
     expect(tag?.textContent).toContain('UX layer');
   });
 
-  it('renders the g brand mark tile', () => {
-    const mark = document.querySelector('.pop-header__mark');
-    expect(mark?.textContent).toBe('g');
+  it('drops the legacy text wordmark and the separate g mark tile', () => {
+    // The full lockup (mark + wordmark) is now inside onegov.logo.white.svg.
+    expect(document.querySelector('.pop-header__name')).toBeNull();
+    expect(document.querySelector('.pop-header__mark')).toBeNull();
   });
 });
 

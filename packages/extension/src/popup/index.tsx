@@ -49,6 +49,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { DomainStatus, Persona } from '@onegov/core';
 
 import type { GetPersonaInferenceReply, GetStatusReply } from '../messages.js';
+import logoUrl from '../../icons-src/onegov.logo.white.svg';
 
 const REPO_URL = 'https://github.com/danitamas/onegov.ro';
 
@@ -91,19 +92,21 @@ export function statusPillFor(status: DomainStatus | null): {
 }
 
 /**
- * Branded header strip. Static — no props, no state. The `g` mark is a CSS
- * tile so we don't ship raster icons inline (they'd bloat popup.js).
+ * Branded header strip. v0.1.2: replaces the v0.1.1 text "g" mark + literal
+ * "onegov" wordmark with the inlined `onegov.logo.white.svg` lockup. The
+ * tagline stays as muted text below the logo so first-time users still get
+ * a one-line "what is this" cue.
+ *
+ * The asset is bundled via Vite's default SVG-as-URL resolver — Vite either
+ * inlines the small SVG as a data URI or copies it next to popup.js,
+ * depending on the configured asset size threshold. Either way no extra
+ * permissions are required (popup.html is part of the extension itself).
  */
 function Header() {
   return (
     <header class="pop-header" role="banner">
-      <span class="pop-header__mark" aria-hidden="true">
-        g
-      </span>
-      <div class="pop-header__text">
-        <span class="pop-header__name">onegov</span>
-        <span class="pop-header__tagline">UX layer pentru servicii publice .ro</span>
-      </div>
+      <img class="pop-header__logo" src={logoUrl} alt="onegov" height={28} />
+      <span class="pop-header__tagline">UX layer pentru servicii publice .ro</span>
     </header>
   );
 }

@@ -108,43 +108,24 @@ body {
 
 /* --- Header --------------------------------------------------------------- */
 
+/* v0.1.2: blue strip stays, but the body is now a stacked logo image +
+ * tagline. The full lockup (mark + ONEGOV wordmark) lives inside
+ * onegov.logo.white.svg — no separate text wordmark to keep in sync. */
 .pop-header {
   display: flex;
-  align-items: center;
-  gap: var(--pop-sp-3);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pop-sp-2);
   padding: var(--pop-sp-4) var(--pop-sp-5);
   background: var(--pop-brand);
   color: var(--pop-on-brand);
 }
 
-.pop-header__mark {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: var(--pop-radius-md);
-  background: var(--pop-on-brand);
-  color: var(--pop-brand);
-  display: inline-grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 18px;
-  font-family: var(--pop-font);
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.pop-header__text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.pop-header__name {
-  font-size: var(--pop-fs-xl);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
+.pop-header__logo {
+  display: block;
+  height: 28px;
+  width: auto;
+  /* The SVG ships its own intrinsic geometry — let the height drive width. */
 }
 
 .pop-header__tagline {
@@ -152,6 +133,7 @@ body {
   font-weight: 400;
   opacity: 0.85;
   line-height: 1.2;
+  letter-spacing: 0.01em;
 }
 
 /* --- Section base --------------------------------------------------------- */
