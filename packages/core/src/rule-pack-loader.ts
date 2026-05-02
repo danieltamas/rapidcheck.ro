@@ -29,6 +29,13 @@ import type { RulePack } from './types.js';
 const PERSONA_VALUES = ['pensioner', 'standard', 'pro', 'journalist'] as const;
 const EXTRACT_TYPES = ['heading', 'paragraph', 'list', 'table', 'form', 'link', 'image'] as const;
 
+// `_comment` is an explicit authoring nicety: rule-pack JSON has no native
+// comment syntax, so authors annotate intent with a `_comment` string field
+// at the route / extract / persona-override level. The schema preserves
+// `.strict()` for every other key (typo protection) but tolerates _comment
+// as opt-in metadata. Loader silently keeps it; nothing reads it at runtime.
+const COMMENT_FIELD = { _comment: z.string().optional() };
+
 const ExtractRuleSchema = z
   .object({
     id: z.string().min(1),
@@ -36,6 +43,7 @@ const ExtractRuleSchema = z
     type: z.enum(EXTRACT_TYPES),
     attrs: z.record(z.string()).optional(),
     multiple: z.boolean().optional(),
+    ...COMMENT_FIELD,
   })
   .strict();
 
@@ -44,6 +52,7 @@ const PersonaOverrideSchema = z
     layout: z.string().min(1).optional(),
     hide: z.array(z.string()).optional(),
     emphasize: z.array(z.string()).optional(),
+    ...COMMENT_FIELD,
   })
   .strict();
 
@@ -69,6 +78,7 @@ const RouteSchema = z
     layout: z.string().min(1),
     extract: z.array(ExtractRuleSchema),
     personas: PersonasSchema.optional(),
+    ...COMMENT_FIELD,
   })
   .strict();
 

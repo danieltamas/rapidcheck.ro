@@ -121,6 +121,31 @@ describe('validate()', () => {
     const pack = validate(minimal);
     expect(pack.routes[0]?.personas).toBeUndefined();
   });
+
+  it('tolerates _comment string fields on routes, extract rules, and persona overrides', () => {
+    const annotated = JSON.parse(JSON.stringify(VALID_PACK)) as Record<string, unknown>;
+    const routes = annotated['routes'] as Array<Record<string, unknown>>;
+    routes[0]!['_comment'] = 'route-level annotation';
+    const extract = routes[0]!['extract'] as Array<Record<string, unknown>>;
+    extract[0]!['_comment'] = 'extract-level annotation';
+    const personas = routes[0]!['personas'] as Record<string, Record<string, unknown>>;
+    if (personas['pensioner']) personas['pensioner']['_comment'] = 'persona-level annotation';
+    expect(() => validate(annotated)).not.toThrow();
+  });
+
+  it('rejects non-string _comment values', () => {
+    const annotated = JSON.parse(JSON.stringify(VALID_PACK)) as Record<string, unknown>;
+    const routes = annotated['routes'] as Array<Record<string, unknown>>;
+    routes[0]!['_comment'] = 123 as unknown as string;
+    expect(() => validate(annotated)).toThrow(ZodError);
+  });
+
+  it('still rejects unknown keys other than _comment (strictness preserved)', () => {
+    const annotated = JSON.parse(JSON.stringify(VALID_PACK)) as Record<string, unknown>;
+    const routes = annotated['routes'] as Array<Record<string, unknown>>;
+    routes[0]!['_arbitrary'] = 'should reject';
+    expect(() => validate(annotated)).toThrow(ZodError);
+  });
 });
 
 describe('loadBundled()', () => {
