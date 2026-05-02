@@ -12,6 +12,8 @@
 
 Stand up the Bun-workspaces monorepo so subsequent tracks can begin in parallel. The unblocking event is committing a **complete, typed, exported `packages/core/src/types.ts`** matching `SPEC.md §5.1`. Everything else (Vite config, manifest skeleton, empty bundle producing a loadable Chrome extension) is supporting work that proves the build pipeline functions end-to-end.
 
+> **v0.1 = Chrome desktop ONLY.** No Firefox, no `web-ext`, no `addons-linter`, no `browser_specific_settings.gecko`, no `.xpi` packaging in this task or anywhere in v0.1. Cross-browser parity is a v0.2 deliverable.
+
 ---
 
 ## Acceptance criteria
@@ -25,7 +27,7 @@ Stand up the Bun-workspaces monorepo so subsequent tracks can begin in parallel.
 - [ ] **`packages/core/src/types.ts` is complete** per `SPEC.md §5.1`: `VerifiedDomain`, `VerifiedDomainList`, `DomainStatus`, `Persona`, `RulePack`, `Route`, `PersonaOverride`, `ExtractRule`, `SerializableDoc`, `SerializableEl`, `SemanticTree`, `SemanticNode`. All exported via `packages/core/src/index.ts` barrel.
 - [ ] Each package's `src/index.ts` exists (barrels); other module files may be empty stubs that re-export `// TODO` placeholders only where required to make builds pass
 - [ ] `packages/extension/vite.config.ts` configured for three entries (`background`, `content`, `popup`) outputting to root `dist/extension/`
-- [ ] `packages/extension/src/manifest.json` matches `SPEC.md §5.3` skeleton — but `host_permissions` and `content_scripts.matches` start with the **v0.1 ship list** from `SITES_COVERAGE.md §8`:
+- [ ] `packages/extension/src/manifest.json` matches `SPEC.md §5.3` skeleton **with these v0.1 deviations**: omit `browser_specific_settings.gecko` entirely (Firefox is v0.2). Set `host_permissions` and `content_scripts.matches` from the **v0.1 ship list** in `SITES_COVERAGE.md §8`:
   ```
   *://*.anaf.ro/*
   *://dgep.mai.gov.ro/*
@@ -42,8 +44,7 @@ Stand up the Bun-workspaces monorepo so subsequent tracks can begin in parallel.
 - [ ] `bun install` succeeds on a clean clone
 - [ ] `bun run check` succeeds
 - [ ] `bun run build` produces `dist/extension/` containing at minimum `manifest.json`, `background.js`, `content.js`, `popup.html`, `popup.js` — even if the JS files are essentially empty
-- [ ] The unpacked `dist/extension/` loads in **Chrome** without error (no console errors in service worker or extension page)
-- [ ] The unpacked `dist/extension/` loads in **Firefox** via manual `about:debugging` → "Load Temporary Add-on" → pick `dist/extension/manifest.json`. **Do NOT install `web-ext` in this task.** It transitively pulls `node-forge` containing a Flash-era `SocketPool.swf` that some antivirus products false-positive on. `web-ext` will be added in a follow-up packaging task with explicit AV whitelist guidance for contributors.
+- [ ] The unpacked `dist/extension/` loads in **Chrome (latest stable)** without error — no console errors in the service worker or extension page. This is the only browser target in v0.1. Firefox / `web-ext` / `browser_specific_settings.gecko` / `.xpi` packaging are explicitly out of scope until v0.2.
 - [ ] `.eslintrc.cjs` and `.prettierrc.json` committed at root (basic config; the custom invariant lint rules from `CODING.md §Tooling` can be added in a follow-up task)
 - [ ] Empty `scripts/` dir contains `validate-packs.ts` stub
 - [ ] Empty `rule-packs/` dir contains `_verified-domains.json` with just `{ "version": "0.0.0", "updatedAt": "<today>", "domains": [] }` (so packs validation has something to load even before Track 5 lands)
@@ -66,7 +67,7 @@ Per `CLAUDE.md §Step 3`, every task needs tests. For this scaffold:
 
 - **Five invariants are not testable yet** (no runtime), but `manifest.json` must already encode invariants 4 + 5: minimal `host_permissions` (only ship-list domains), minimal `permissions` (`storage`, `scripting`, `activeTab`, `webNavigation` only — nothing else).
 - **No `chrome.*` outside `packages/extension`.**
-- **No new runtime dependencies** beyond: `preact`, `psl`, `idna-uts46-hx`, `zod`. Dev deps allowed: `typescript`, `vite`, `@types/chrome`, `@types/firefox-webext-browser`, `prettier`, `eslint`, `@typescript-eslint/*`. **Explicitly NOT in this task: `web-ext`, `addons-linter`** — both pull `node-forge` (Flash polyfill triggers AV). They land in a follow-up packaging task.
+- **No new runtime dependencies** beyond: `preact`, `psl`, `idna-uts46-hx`, `zod`. Dev deps allowed: `typescript`, `vite`, `@types/chrome`, `prettier`, `eslint`, `@typescript-eslint/*`. **Explicitly NOT in v0.1: `web-ext`, `addons-linter`, `@types/firefox-webext-browser`, `playwright` Firefox project.** All Firefox-related tooling is deferred to v0.2.
 - **MAX 500 lines per file.**
 - **TypeScript strict, no `any`.**
 - **English in code; Romanian only in user-facing UI text** (none yet — this is scaffold).
@@ -81,7 +82,7 @@ After completion, write `jobs/v0.1-foundation/DONE-01-monorepo-scaffold.md` per 
 Include in your final summary to the orchestrator:
 1. Branch name and commit hashes
 2. Output of `bun run check`, `bun test`, `bun run build` (paste tail)
-3. Confirmation extension loaded in Chrome and Firefox (one screenshot or "loaded clean" line each)
+3. Confirmation extension loaded in Chrome (one screenshot or "loaded clean" line). If you cannot launch Chrome from the worker environment, explicitly state so and defer the load test to the reviewer.
 4. Any deviations from this spec (with justification)
 5. List of follow-up work that should be its own task (e.g. invariant lint rules, icon generation script)
 

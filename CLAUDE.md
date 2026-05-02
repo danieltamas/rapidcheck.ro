@@ -1,8 +1,10 @@
 # onegov.ro — A Universal UX Layer Over Romanian Government Portals
 
-A Manifest V3 WebExtension (Chrome + Firefox) that transforms Romanian government portals into a unified, persona-adapted UI **without modifying underlying form data, sessions, or submissions**. The extension is the wedge; AI fallback, mobile shells, telemetry, community rule packs and form bridging compound on top of it.
+A Manifest V3 WebExtension that transforms Romanian government portals into a unified, persona-adapted UI **without modifying underlying form data, sessions, or submissions**. The extension is the wedge; AI fallback, mobile shells, telemetry, community rule packs and form bridging compound on top of it.
 
 **See `SPEC.md` for the full v0.1 execution plan and `SITES_COVERAGE.md` for the verified site inventory.** This file is the operating manual — those are the product spec.
+
+> **v0.1 scope: Chrome desktop only.** Firefox parity moves to v0.2. The codebase stays cross-browser-compatible (avoid Chrome-only APIs where alternatives exist) but Firefox packaging, `web-ext`, `addons-linter`, and `browser_specific_settings.gecko` are deferred. v0.1 ships a single `dist/extension/` loaded via `chrome://extensions` → Load unpacked.
 
 ---
 

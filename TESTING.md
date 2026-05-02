@@ -19,15 +19,16 @@ bun test -- --watch
 # Validate every rule pack against the Zod schema
 bun run validate-packs
 
-# Cross-browser end-to-end (Chromium + Firefox)
+# End-to-end (Chromium only in v0.1; Firefox project added in v0.2)
 bun run e2e
-bun run e2e -- --project=firefox
 bun run e2e -- --debug
 ```
 
 - **Unit**: bun:test. Lives in `packages/<pkg>/tests/` or `**/__tests__/`.
-- **E2E**: Playwright with both Chromium and Firefox projects. Lives in `e2e/`.
-- **Visual smoke**: `packages/ui/test-harness.html` opens in any browser and renders the same `SemanticTree` across all four personas side-by-side.
+- **E2E**: Playwright Chromium-only in v0.1. Lives in `e2e/`. Firefox project lands in v0.2.
+- **Visual smoke**: `packages/ui/test-harness.html` opens in any Chromium browser and renders the same `SemanticTree` across all four personas side-by-side.
+
+> **v0.1 scope:** Chrome desktop only. Drop Firefox from cross-browser matrices below — they are written aspirationally for v0.2.
 
 ---
 

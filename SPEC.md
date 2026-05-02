@@ -1,6 +1,8 @@
 # onegov.ro — v0.1 Execution Plan
 
-**Owner:** Daniel Tamas **Status:** Ready for parallel agent execution **Target:** Working cross-browser WebExtension, end of day - called [onegov.ro](http://onegov.ro) 
+**Owner:** Daniel Tamas **Status:** Ready for parallel agent execution **Target:** Working Chrome desktop WebExtension - called [onegov.ro](http://onegov.ro)
+
+> **v0.1 SCOPE NARROWED — Chrome desktop only.** Firefox packaging + cross-browser parity moves to v0.2. The text below still references "Chrome + Firefox" in places; treat any Firefox/web-ext/gecko/xpi mention as **deferred to v0.2**. The codebase stays cross-browser-compatible at the API level (no Chrome-only APIs without justification), but no Firefox build, packaging, or QA in v0.1.
 
 ---
 

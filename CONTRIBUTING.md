@@ -119,13 +119,15 @@ Edit `packages/extension/src/manifest.json` and add the domain pattern (e.g. `"*
 
 > **Note:** maintainer review is required for manifest changes. New `host_permissions` are an attack-surface expansion and a Web-Store review trigger — please justify in the PR description.
 
-### 7. Manual QA in Chrome and Firefox
+### 7. Manual QA in Chrome
 
 ```bash
 bun run build
 ```
 
-Then load unpacked in both browsers and visit the target site. Take **before/after screenshots** for each persona (`pensioner`, `standard`, `pro`, `journalist`) — that's eight screenshots for one route. Commit them to `jobs/<job>/qa/<domain>/`.
+Then load unpacked in Chrome (`chrome://extensions` → Load unpacked → `dist/extension/`) and visit the target site. Take **before/after screenshots** for each persona (`pensioner`, `standard`, `pro`, `journalist`) — that's eight screenshots for one route. Commit them to `jobs/<job>/qa/<domain>/`.
+
+> **v0.1 is Chrome-only.** Firefox QA arrives in v0.2 along with `web-ext` packaging.
 
 ### 8. Open a PR
 
@@ -169,7 +171,7 @@ bun run check       # lint + typecheck across workspaces
 bun test            # unit tests
 bun run validate-packs
 bun run build
-bun run e2e         # Playwright (Chromium + Firefox)
+bun run e2e         # Playwright (Chromium only in v0.1; Firefox added in v0.2)
 ```
 
 ### Branching
@@ -200,8 +202,8 @@ test(ui): add render snapshot for journalist persona
 - [ ] Lint + typecheck pass (`bun run check`)
 - [ ] All unit tests pass (`bun test`)
 - [ ] All rule packs validate (`bun run validate-packs`)
-- [ ] E2E passes in Chromium and Firefox (`bun run e2e`)
-- [ ] Manual smoke load in Chrome AND Firefox (no console errors)
+- [ ] E2E passes in Chromium (`bun run e2e`) — Firefox project added in v0.2
+- [ ] Manual smoke load in Chrome (no console errors) — Firefox load deferred to v0.2
 - [ ] Each of the five invariants still holds (PR description must confirm)
 - [ ] No file exceeds 500 lines
 - [ ] No new runtime dependencies without maintainer approval

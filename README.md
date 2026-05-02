@@ -1,7 +1,7 @@
 # onegov.ro
 
 > A universal UX layer over Romanian government portals.
-> Manifest V3 WebExtension. Chrome + Firefox. Privacy-first. MIT.
+> Manifest V3 WebExtension. Chrome desktop (v0.1). Firefox in v0.2. Privacy-first. MIT.
 
 onegov.ro transforms Romania's public-service websites into a unified, persona-adapted UI **without touching the underlying form data, sessions, or submissions**. The original page stays intact underneath; the extension renders a clean overlay in a closed shadow root and gets out of the way the moment you ask.
 
@@ -41,16 +41,7 @@ bun run build
 
 **Chrome:** `chrome://extensions` → enable Developer mode → Load unpacked → select `dist/extension/`.
 
-**Firefox:**
-
-```bash
-cd packages/extension
-bunx web-ext run --source-dir ../../dist/extension/
-```
-
-Or `about:debugging` → This Firefox → Load Temporary Add-on → pick `dist/extension/manifest.json`.
-
-Once v0.1 is signed (v0.2 milestone) the extension will be available on the Chrome Web Store and Firefox Add-ons.
+> **v0.1 is Chrome desktop only.** Firefox parity, packaging (`.xpi`), and signing all move to v0.2. Once v0.1 is signed for Chrome Web Store, the Firefox port follows.
 
 ---
 
