@@ -54,7 +54,7 @@ onegov.ro is a browser-extension UX layer with a privacy-first, supply-chain-cau
 | Extension itself | RCE via rule packs or remote code | Invariant #3 (declarative JSON only, no `eval`/`Function`/`innerHTML` with rule data) + lint rules |
 | Lookalike-domain users | Phishing slipping past as `verified` | Lookalike algorithm (Levenshtein + IDNA + TLD swap) + ≥20 test cases + `_verified-domains.json` curation discipline |
 | Verified-domain roster | Malicious PR adding bad domain | All additions reviewed by maintainer, must include sourced URL evidence |
-| Build pipeline | Supply-chain compromise | Lockfile committed, `npm audit` in CI, no `postinstall` scripts, dependency adds require approval |
+| Build pipeline | Supply-chain compromise | Lockfile committed, `bun audit` in CI, no `postinstall` scripts, dependency adds require approval |
 | User trust | Extension silently changing behaviour | Open source, reproducible builds, signed releases (v0.2+) |
 
 ---
@@ -125,8 +125,8 @@ onegov.ro is a browser-extension UX layer with a privacy-first, supply-chain-cau
 ### Supply chain
 
 - [ ] No new runtime dependencies added without orchestrator approval (and a one-paragraph justification + license check in the PR)
-- [ ] `package-lock.json` is committed and consistent
-- [ ] `npm audit --production` shows no high or critical issues
+- [ ] `bun.lockb` is committed and consistent
+- [ ] `bun audit` shows no high or critical issues
 - [ ] No `postinstall`, `preinstall`, or `prepare` scripts in any new dependency without inspection
 - [ ] No copy-pasted code from unverified sources
 

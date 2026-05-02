@@ -6,26 +6,26 @@
 
 ```bash
 # All unit tests across workspaces
-npm test
+bun test
 
 # A single package
-npm test -w @onegov/core
-npm test -w @onegov/ui
-npm test -w @onegov/extension
+cd packages/core && bun test
+cd packages/ui && bun test
+cd packages/extension && bun test
 
 # Watch mode
-npm test -- --watch
+bun test -- --watch
 
 # Validate every rule pack against the Zod schema
-npm run validate-packs
+bun run validate-packs
 
 # Cross-browser end-to-end (Chromium + Firefox)
-npm run e2e
-npm run e2e -- --project=firefox
-npm run e2e -- --debug
+bun run e2e
+bun run e2e -- --project=firefox
+bun run e2e -- --debug
 ```
 
-- **Unit**: Vitest. Lives in `packages/<pkg>/tests/` or `**/__tests__/`.
+- **Unit**: bun:test. Lives in `packages/<pkg>/tests/` or `**/__tests__/`.
 - **E2E**: Playwright with both Chromium and Firefox projects. Lives in `e2e/`.
 - **Visual smoke**: `packages/ui/test-harness.html` opens in any browser and renders the same `SemanticTree` across all four personas side-by-side.
 
@@ -45,7 +45,7 @@ npm run e2e -- --debug
             │  Visual harness (test-harness.html) │   per UI change
             └──────────────────────────────┘
         ┌─────────────────────────────────────┐
-        │  Unit tests (Vitest)                 │   every change
+        │  Unit tests (bun:test)                 │   every change
         └─────────────────────────────────────┘
 ```
 
@@ -238,7 +238,7 @@ Naming: `<module>.test.ts` mirrors the source file.
 
 ```typescript
 // packages/extension/src/__tests__/chrome-stub.ts
-import { vi } from 'vitest';
+import { vi } from 'bun:test';
 
 export function makeChromeStub() {
   const storage = new Map<string, unknown>();
@@ -290,13 +290,13 @@ export const el = (tag: string, text: string, attrs: Record<string, string> = {}
 Every PR that touches `packages/extension` or `packages/ui` MUST pass:
 
 ```bash
-npm run e2e -- --project=chromium
-npm run e2e -- --project=firefox
+bun run e2e -- --project=chromium
+bun run e2e -- --project=firefox
 ```
 
 Plus a manual smoke load:
 
-1. `npm run build`
+1. `bun run build`
 2. Chrome: `chrome://extensions` → Load unpacked → `dist/extension/`
 3. Firefox: `cd packages/extension && web-ext run --source-dir ../../dist/extension/`
 4. Open the QA matrix (4 personas × 6 rule-pack sites = 24 cases) and click through each
@@ -318,9 +318,9 @@ Plus a manual smoke load:
 
 ## Checklist Before Merge
 
-- [ ] `npm test` passes (every package, every test)
-- [ ] `npm run validate-packs` passes
-- [ ] `npm run e2e` passes in both Chromium and Firefox
+- [ ] `bun test` passes (every package, every test)
+- [ ] `bun run validate-packs` passes
+- [ ] `bun run e2e` passes in both Chromium and Firefox
 - [ ] Manual smoke: extension loads in Chrome and Firefox without console errors
 - [ ] No `.only`, `.skip`, `console.log`, or `debugger` in committed tests
 - [ ] Tests are deterministic (no time-of-day or network-flakiness dependence)

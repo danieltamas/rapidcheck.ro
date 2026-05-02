@@ -35,8 +35,8 @@ Six rule packs ship in v0.1: `anaf.ro`, `dgep.mai.gov.ro`, `portal.just.ro`, `gh
 ```bash
 git clone https://github.com/danieltamas/onegov.ro.git
 cd onegov.ro
-npm install
-npm run build
+bun install
+bun run build
 ```
 
 **Chrome:** `chrome://extensions` → enable Developer mode → Load unpacked → select `dist/extension/`.
@@ -45,7 +45,7 @@ npm run build
 
 ```bash
 cd packages/extension
-npx web-ext run --source-dir ../../dist/extension/
+bunx web-ext run --source-dir ../../dist/extension/
 ```
 
 Or `about:debugging` → This Firefox → Load Temporary Add-on → pick `dist/extension/manifest.json`.

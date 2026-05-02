@@ -70,7 +70,7 @@ git branch --show-current  # VERIFY
 1. BRANCH       → Create task branch
 2. IMPLEMENT    → Code + commit incrementally
 3. SELF-REVIEW  → Re-read all changed files
-4. TEST         → npm test + npm run validate-packs (+ npm run e2e if applicable)
+4. TEST         → bun test + bun run validate-packs (+ bun run e2e if applicable)
 5. CROSS-BROWSER → Load unpacked in Chrome + Firefox, smoke test
 6. DONE REPORT  → jobs/<job>/DONE-<task>.md
 7. UPDATE DOCS  → ARCHITECTURE.md + LOG.md
@@ -160,7 +160,7 @@ You are a CODE WORKER on onegov.ro — a Manifest V3 WebExtension that
 transforms Romanian government portals into a unified persona-adapted UI without
 modifying underlying form data, sessions, or submissions.
 
-Tech: Vite + TypeScript + Preact + Vitest, npm workspaces monorepo.
+Tech: Vite + TypeScript + Preact + bun:test, Bun workspaces monorepo.
 Read CLAUDE.md, then SPEC.md, then CODING.md before writing code.
 
 ## Your Job
@@ -190,7 +190,7 @@ If your implementation weakens any of these, STOP and ask the orchestrator.
 - No `chrome.*` outside packages/extension
 - No new dependencies without orchestrator approval
 - No new host_permissions without orchestrator approval
-- Tests required for every change (Vitest unit, Playwright E2E if user-flow changed)
+- Tests required for every change (bun:test unit, Playwright E2E if user-flow changed)
 
 ## Commit Rules
 - NEVER add Co-Authored-By
@@ -199,7 +199,7 @@ If your implementation weakens any of these, STOP and ask the orchestrator.
 
 ## Required Output
 1. Code committed on task branch
-2. All tests passing (`npm test` + `npm run validate-packs`)
+2. All tests passing (`bun test` + `bun run validate-packs`)
 3. Loaded unpacked in Chrome + Firefox, no console errors
 4. DONE report at `jobs/{job}/DONE-{task}.md` (template in CLAUDE.md §Step 4)
 5. Summary back to orchestrator: changed files, commit count, blockers
@@ -229,7 +229,7 @@ Worker's branch: `{branch}` in worktree `.worktrees/{branch}-review`.
 - [ ] No `eval` / `Function()` / `innerHTML` with rule-pack data
 
 ## Quality Checks
-- [ ] All Vitest tests pass
+- [ ] All bun:test tests pass
 - [ ] All rule packs validate
 - [ ] Loads in Chrome — no console errors
 - [ ] Loads in Firefox — no console errors

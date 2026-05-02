@@ -108,7 +108,7 @@ At least one persona override must produce a visibly different result.
 ### 5. Validate
 
 ```bash
-npm run validate-packs
+bun run validate-packs
 ```
 
 Must pass. The Zod schema in `packages/core/src/rule-pack-loader.ts` is the source of truth.
@@ -122,7 +122,7 @@ Edit `packages/extension/src/manifest.json` and add the domain pattern (e.g. `"*
 ### 7. Manual QA in Chrome and Firefox
 
 ```bash
-npm run build
+bun run build
 ```
 
 Then load unpacked in both browsers and visit the target site. Take **before/after screenshots** for each persona (`pensioner`, `standard`, `pro`, `journalist`) — that's eight screenshots for one route. Commit them to `jobs/<job>/qa/<domain>/`.
@@ -153,7 +153,7 @@ The verified-domain roster (`rule-packs/_verified-domains.json`) drives the gree
 
 ### Lookalike test fallout
 
-When you add a new entry, run `npm test -w @onegov/core` to confirm no false positives are introduced against existing entries (e.g. adding `cjcluj.ro` should not cause `cjcjuj.ro` to incorrectly resolve to a different lookalike). If a false positive appears, the right fix is usually to add the entry but also adjust the test fixtures — never to weaken the lookalike algorithm.
+When you add a new entry, run `cd packages/core && bun test` to confirm no false positives are introduced against existing entries (e.g. adding `cjcluj.ro` should not cause `cjcjuj.ro` to incorrectly resolve to a different lookalike). If a false positive appears, the right fix is usually to add the entry but also adjust the test fixtures — never to weaken the lookalike algorithm.
 
 ---
 
@@ -164,12 +164,12 @@ When you add a new entry, run `npm test -w @onegov/core` to confirm no false pos
 ```bash
 git clone https://github.com/danieltamas/onegov.ro.git
 cd onegov.ro
-npm install
-npm run check       # lint + typecheck across workspaces
-npm test            # unit tests
-npm run validate-packs
-npm run build
-npm run e2e         # Playwright (Chromium + Firefox)
+bun install
+bun run check       # lint + typecheck across workspaces
+bun test            # unit tests
+bun run validate-packs
+bun run build
+bun run e2e         # Playwright (Chromium + Firefox)
 ```
 
 ### Branching
@@ -197,10 +197,10 @@ test(ui): add render snapshot for journalist persona
 
 ### Required for every PR
 
-- [ ] Lint + typecheck pass (`npm run check`)
-- [ ] All unit tests pass (`npm test`)
-- [ ] All rule packs validate (`npm run validate-packs`)
-- [ ] E2E passes in Chromium and Firefox (`npm run e2e`)
+- [ ] Lint + typecheck pass (`bun run check`)
+- [ ] All unit tests pass (`bun test`)
+- [ ] All rule packs validate (`bun run validate-packs`)
+- [ ] E2E passes in Chromium and Firefox (`bun run e2e`)
 - [ ] Manual smoke load in Chrome AND Firefox (no console errors)
 - [ ] Each of the five invariants still holds (PR description must confirm)
 - [ ] No file exceeds 500 lines

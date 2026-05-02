@@ -37,7 +37,7 @@ Any PR that violates an invariant is rejected on sight, regardless of test resul
 | **Worker** | "implement", "build", "fix", specific task | Create task branch, implement, write tests, write DONE report | Merge into group branch. Skip the DONE report. Skip tests. Touch the original DOM. |
 | **Reviewer** | Spawned by orchestrator after worker completes | Review code, run tests, run cross-browser smoke, file issues in REVIEW report | Write implementation code. Approve with open issues. Approve any change that weakens an invariant. |
 | **Single-agent** | Direct instruction without role context | Branch, implement, test, self-review, DONE report, docs, merge | Skip the branch, DONE report, or tests |
-| **Rule-pack author** | "write a pack for X site", "extend the verified list" | Inspect the live site, write declarative JSON, validate with `npm run validate-packs`, manually QA in Chrome + Firefox | Touch TypeScript source. Add new permissions to manifest without orchestrator approval. |
+| **Rule-pack author** | "write a pack for X site", "extend the verified list" | Inspect the live site, write declarative JSON, validate with `bun run validate-packs`, manually QA in Chrome + Firefox | Touch TypeScript source. Add new permissions to manifest without orchestrator approval. |
 | **Diagnoser** | "extension breaks on X site", "icon stuck on red", regression in shadow DOM mounting, persona switch lag | OBSERVE → HYPOTHESIZE → PREDICT → ACT → VERIFY (see ONSTART Diagnosis Workflow) | Change the manifest, host_permissions, or invariants without evidence. Try the opposite of your last fix. Commit a revert without first writing a diagnostic note. |
 
 **State your mode in your first response.** If the task is Diagnoser shape, do NOT branch and start editing — follow the Diagnosis Workflow in `ONSTART.md`.
@@ -57,13 +57,13 @@ git branch --show-current  # VERIFY before writing code
 
 | What changed | Required tests |
 | --- | --- |
-| Core engine (`packages/core`) | Vitest unit tests against pure functions. ≥10 cases for verifier, ≥20 for lookalike (incl. Cyrillic homographs and TLD swaps). |
+| Core engine (`packages/core`) | bun:test unit tests against pure functions. ≥10 cases for verifier, ≥20 for lookalike (incl. Cyrillic homographs and TLD swaps). |
 | UI components (`packages/ui`) | Render tests with mock `SemanticTree`. Visual snapshot via `test-harness.html`. |
-| Extension shell (`packages/extension`) | Background service worker logic tested via headless Vitest. Content-script behavior asserted via Playwright E2E (Chrome + Firefox). |
+| Extension shell (`packages/extension`) | Background service worker logic tested via headless bun:test. Content-script behavior asserted via Playwright E2E (Chrome + Firefox). |
 | Rule packs (`rule-packs/`) | All packs validate against `schema.json`. Manual QA against the live site, screenshots committed to `jobs/<job>/qa/`. |
 | Bug fixes | Regression test proving the bug is fixed. |
 
-Tests go in `packages/<pkg>/tests/` next to the code they test, or `packages/<pkg>/src/**/__tests__/`. Use `npm test` (Vitest under the hood). E2E in `e2e/`.
+Tests go in `packages/<pkg>/tests/` next to the code they test, or `packages/<pkg>/src/**/__tests__/`. Use `bun test` (bun:test under the hood). E2E in `e2e/`.
 
 ### Step 4: DONE Report
 
@@ -94,7 +94,7 @@ After implementation + tests pass, write `jobs/<job>/DONE-<task>.md`:
 **The orchestrator MUST spawn a reviewer agent after each worker completes.** The reviewer:
 
 1. **Reads** every changed file in the task branch
-2. **Runs** `npm test` and `npm run validate-packs` — all must pass
+2. **Runs** `bun test` and `bun run validate-packs` — all must pass
 3. **Loads** the unpacked extension in Chrome and Firefox; smoke-tests against at least one verified domain and one off-list domain
 4. **Checks** for: invariant violations, missing tests, host-permission creep, manifest changes, new dependencies, bundle-size growth, accessibility regressions
 5. **Writes** `jobs/<job>/REVIEW-<task>.md`:
@@ -165,7 +165,7 @@ main
 | **Never run two workers that modify the same package.** | Two writers in `packages/core/src/` will conflict silently. Sequence them. |
 | **Merge tasks into group one at a time.** | Never batch-merge. Merge task A, verify, then merge task B. |
 | **Rebase before merge.** | Before merging task → group, rebase on the latest group: `git checkout task && git rebase group`. |
-| **Run tests after every merge.** | After merging task → group: `npm test`. If tests fail, revert the merge and fix. |
+| **Run tests after every merge.** | After merging task → group: `bun test`. If tests fail, revert the merge and fix. |
 | **Lock main during group→main merge.** | When merging a group branch into main, NO other merges may happen. |
 | **Never force-push shared branches.** | `--force` on group branches or main destroys other workers' base. Forbidden. |
 
@@ -192,13 +192,13 @@ main
 | --- | --- | --- |
 | **Build** | Vite (multi-entry for MV3) | `packages/extension/vite.config.ts` |
 | **Language** | TypeScript (strict) | everywhere |
-| **Monorepo** | npm workspaces | root `package.json` |
+| **Monorepo** | Bun workspaces | root `package.json` |
 | **UI runtime** | Preact (NOT React) | `packages/ui` |
 | **Styling** | Plain CSS with custom properties (NO Tailwind, NO CSS-in-JS) | `packages/ui/src/theme.css` |
 | **Validation** | Zod | `packages/core` |
 | **eTLD+1 parsing** | `psl` | `packages/core/src/domain-verifier.ts` |
 | **IDNA / homograph** | `idna-uts46-hx` (or equivalent) | `packages/core/src/lookalike.ts` |
-| **Unit tests** | Vitest | per-package `tests/` |
+| **Unit tests** | bun:test | per-package `tests/` |
 | **E2E tests** | Playwright (Chromium + Firefox) | `e2e/` |
 | **Firefox tooling** | `web-ext` | dev only |
 | **Lint** | ESLint + `@typescript-eslint` | root config |
@@ -323,7 +323,7 @@ Rule packs are declarative JSON validated by Zod against `rule-packs/schema.json
 2. Identify semantic elements (headings, key paragraphs, forms, action links)
 3. Write `extract` rules with stable selectors (prefer `[data-*]` and stable IDs; fall back to structural selectors as a last resort)
 4. Define persona overrides (`hide` / `emphasize` / `layout`)
-5. `npm run validate-packs`
+5. `bun run validate-packs`
 6. Load the extension and confirm extraction picks up correct content
 7. Commit screenshots of before/after (per persona) to `jobs/<job>/qa/`
 
@@ -340,31 +340,31 @@ Rule packs are declarative JSON validated by Zod against `rule-packs/schema.json
 ## Quick Start
 
 ```bash
-# Install (npm workspaces)
-npm install
+# Install (Bun workspaces)
+bun install
 
 # Dev mode: rebuild on change
-npm run dev
+bun run dev
 
 # Type-check + lint everything
-npm run check
+bun run check
 
 # Run all unit tests
-npm test
+bun test
 
 # Validate rule packs against schema
-npm run validate-packs
+bun run validate-packs
 
 # Build production bundles
-npm run build
+bun run build
 
 # Package for stores (unsigned in v0.1)
-npm run package
+bun run package
 # → dist/onegov-chrome.zip
 # → dist/onegov-firefox.xpi
 
 # Run E2E (Playwright, Chromium + Firefox)
-npm run e2e
+bun run e2e
 ```
 
 ### Loading the extension
@@ -374,10 +374,9 @@ npm run e2e
 
 ### Required tools
 
-- Node.js ≥ 20
-- npm ≥ 10
-- Chrome (latest stable) and Firefox (latest stable)
-- `web-ext` (`npm i -g web-ext`) for Firefox dev loop
+- Bun ≥ 1.2 (Node.js 24 compatibility target)
+- - Chrome (latest stable) and Firefox (latest stable)
+- `web-ext` (`bun add -g web-ext`) for Firefox dev loop
 
 ---
 
@@ -460,7 +459,7 @@ CAPTCHAs (reCAPTCHA, hCaptcha, Turnstile), OAuth iframes, payment iframes, 3-D-S
 
 1. Create `packages/core/src/<module>.ts`
 2. Export public API from `packages/core/src/index.ts`
-3. Write Vitest tests in `packages/core/tests/<module>.test.ts`
+3. Write bun:test tests in `packages/core/tests/<module>.test.ts`
 4. **No DOM, no browser APIs.** If you need to operate on a document, take a `SerializableDoc` (see `types.ts`).
 5. Update `docs/ARCHITECTURE.md`
 
@@ -469,7 +468,7 @@ CAPTCHAs (reCAPTCHA, hCaptcha, Turnstile), OAuth iframes, payment iframes, 3-D-S
 1. Create `packages/ui/src/components/<Name>.tsx`
 2. Accept `persona: Persona` prop and respond to it
 3. Add render test + add to `test-harness.html`
-4. Bundle-size check: `npm run build && du -sh dist/extension/content.js`
+4. Bundle-size check: `bun run build && du -sh dist/extension/content.js`
 5. Update `docs/ARCHITECTURE.md`
 
 ### When adding a new rule pack
@@ -477,7 +476,7 @@ CAPTCHAs (reCAPTCHA, hCaptcha, Turnstile), OAuth iframes, payment iframes, 3-D-S
 1. Create `rule-packs/<domain>.json`
 2. Inspect the live site and write `extract` rules with stable selectors
 3. Define persona overrides (at least one persona must produce a visibly different result)
-4. `npm run validate-packs` — must pass
+4. `bun run validate-packs` — must pass
 5. Manually QA in Chrome **and** Firefox; commit before/after screenshots to `jobs/<job>/qa/`
 6. If the domain isn't already in `_verified-domains.json`, add it with a sourced `source` URL
 7. Update `host_permissions` in `packages/extension/src/manifest.json` (orchestrator approval required)
@@ -503,7 +502,7 @@ CAPTCHAs (reCAPTCHA, hCaptcha, Turnstile), OAuth iframes, payment iframes, 3-D-S
 1. All acceptance criteria in `SPEC.md §8` ticked
 2. Verification protocol in `SPEC.md §9` executed and recorded
 3. Bump `version` in `packages/extension/src/manifest.json` and root `package.json`
-4. `npm run package` produces `dist/onegov-chrome.zip` + `dist/onegov-firefox.xpi`
+4. `bun run package` produces `dist/onegov-chrome.zip` + `dist/onegov-firefox.xpi`
 5. Tag: `git tag v0.1.0 && git push --tags`
 6. Update `README.md` install instructions
 7. Demo recording per `SITES_COVERAGE.md §9`

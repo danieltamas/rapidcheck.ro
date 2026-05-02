@@ -8,13 +8,13 @@
 
 - **Language**: TypeScript (strict mode, project references)
 - **Build**: Vite (multi-entry for the extension package)
-- **Monorepo**: npm workspaces
+- **Monorepo**: Bun workspaces
 - **UI runtime**: Preact (NOT React) + Preact Signals where local state needs to cross components
 - **Styling**: Plain CSS with CSS custom properties (`--onegov-*`), scoped inside the closed shadow root
 - **Validation**: Zod
 - **eTLD+1 parsing**: `psl`
 - **IDNA / homograph normalisation**: `idna-uts46-hx` (or equivalent — verify license)
-- **Tests**: Vitest (unit), Playwright (E2E, Chromium + Firefox)
+- **Tests**: bun:test (unit), Playwright (E2E, Chromium + Firefox)
 - **Lint**: ESLint + `@typescript-eslint` + custom rules forbidding `eval` / `innerHTML` / `chrome.*` outside `packages/extension`
 - **Format**: Prettier
 - **Firefox dev**: `web-ext`
