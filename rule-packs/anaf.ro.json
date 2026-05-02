@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "routes": [
     {
-      "_comment": "Homepage at /anaf/internet/ANAF/. ANAF runs IBM WebSphere Portal (Lotus / wptheme* CSS classes) — these are stable across IBM portal deployments and across page templates inside ANAF. We target wptheme* and the lm-dynamic-title pattern that wraps every portlet heading. Selector source: direct fetch of https://www.anaf.ro/anaf/internet/ANAF/ on 2026-05-02. Routes match the rewriting WebSphere does to URLs (the path begins with /anaf/internet/ANAF/).",
-      "match": { "pattern": "^/anaf/internet/ANAF/?$" },
+      "_comment": "Homepage at /anaf/internet/ANAF/ (canonical) and /anaf/internet/ANAF/acasa/!ut/p/... (the WebSphere stateful URL form real users land on after any nav). ANAF runs IBM WebSphere Portal (Lotus / wptheme* CSS classes) — these are stable across IBM portal deployments and across page templates inside ANAF. We target wptheme* and the lm-dynamic-title pattern. The route pattern matches both canonical and !ut-stateful homepage URLs but excludes /servicii_online which has its own route below (matchRoute picks the FIRST hit, so order matters — keep this AFTER any deeper-route entry, OR use exclusion in the pattern). Selector source: direct fetch of https://www.anaf.ro/anaf/internet/ANAF/ on 2026-05-02. Live console diagnostic 2026-05-02 confirmed users hit /anaf/internet/ANAF/acasa/!ut/p/a1/... after redirect.",
+      "match": { "pattern": "^/anaf/internet/ANAF(/(acasa(/.*)?|!ut/.*)?)?/?$" },
       "layout": "landing",
       "extract": [
         {
