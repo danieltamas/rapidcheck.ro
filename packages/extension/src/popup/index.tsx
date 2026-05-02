@@ -262,7 +262,7 @@ function Footer({ version }: { version: string }) {
     <footer class="pop-footer">
       <span class="pop-footer__group">
         <span>onegov</span>
-        <span class="pop-footer__sep">\u00B7</span>
+        <span class="pop-footer__sep">{'\u00B7'}</span>
         <span>v{version}</span>
       </span>
       <a class="pop-footer__link" href={REPO_URL} target="_blank" rel="noopener noreferrer">

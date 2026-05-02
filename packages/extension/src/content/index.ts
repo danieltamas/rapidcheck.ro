@@ -271,7 +271,19 @@ function setOverlayVisible(host: HTMLDivElement, visible: boolean): void {
  */
 async function activate(domain: string, pack: RulePack): Promise<void> {
   const route = matchRoute(pack, location.pathname);
-  if (!route) return;
+  if (!route) {
+    // eslint-disable-next-line no-console
+    console.info(
+      '[onegov] exiting — no route in pack matches pathname',
+      location.pathname,
+      '(routes:',
+      pack.routes.map((r) => r.match.pattern).join(', '),
+      ')',
+    );
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.info('[onegov] route matched:', route.match.pattern, '— mounting overlay');
 
   const initial = await readSettings();
   const { host, shadow } = mountShadowHost();
@@ -326,22 +338,28 @@ async function activate(domain: string, pack: RulePack): Promise<void> {
 
 /**
  * Entry point. Awaits classification, then either activates or exits cleanly.
+ *
+ * v0.1.1: visible (non-DEV-gated) `[onegov]` log lines so users can diagnose
+ * "nothing happens on this site" from the browser console without a dev build.
+ * Each log explains the lifecycle stage and why the script is doing what it
+ * does. Quiet on the happy path (one line saying "active" + one per re-render).
  */
 async function main(): Promise<void> {
+  // eslint-disable-next-line no-console
+  console.info('[onegov] content script loaded on', location.href);
+
   const statusReply = await sendMessage<GetStatusReply>({
     type: 'get-status',
     url: location.href,
   });
   const status: DomainStatus | null = statusReply?.status ?? null;
   if (!status || status.kind !== 'verified') {
-    if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      // eslint-disable-next-line no-console
-      console.debug(
-        '[onegov] content script — exiting cleanly (status:',
-        status?.kind ?? 'unreachable',
-        ')',
-      );
-    }
+    // eslint-disable-next-line no-console
+    console.info(
+      '[onegov] exiting — domain not verified (status:',
+      status?.kind ?? 'unreachable',
+      ')',
+    );
     return;
   }
 
@@ -351,12 +369,20 @@ async function main(): Promise<void> {
   });
   const pack: RulePack | null = packReply?.pack ?? null;
   if (!pack) {
-    if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      // eslint-disable-next-line no-console
-      console.debug('[onegov] content script — no pack for', status.domain.domain);
-    }
+    // eslint-disable-next-line no-console
+    console.info('[onegov] exiting — no rule pack for', status.domain.domain);
     return;
   }
+
+  // eslint-disable-next-line no-console
+  console.info(
+    '[onegov] verified domain',
+    status.domain.domain,
+    '— pack has',
+    pack.routes.length,
+    'route(s); checking against pathname',
+    location.pathname,
+  );
 
   await activate(status.domain.domain, pack);
 }
