@@ -32,7 +32,7 @@
 
 import type { VerifiedDomainList } from '@onegov/core';
 
-import { decideIcon, iconPath, type IconColor } from './decide-icon.js';
+import { decideIcon, iconPath, badgeStyle, type IconColor } from './decide-icon.js';
 import { registerMessageHandlers } from './messaging.js';
 import verifiedList from '../../../../rule-packs/_verified-domains.json';
 
@@ -50,10 +50,20 @@ const ROSTER = verifiedList as unknown as VerifiedDomainList;
 function applyIconForUrl(tabId: number, url: string | undefined): void {
   if (!url) return;
   const color: IconColor = decideIcon(url, ROSTER);
-  // setIcon returns a Promise in MV3; we don't await — failure here is non-
-  // fatal (the tab may have closed mid-flight). Catch silently to keep the
-  // SW from logging unhandled-rejection noise on tab churn.
+  const badge = badgeStyle(color);
+  // setIcon / setBadgeText / setBadgeBackgroundColor return Promises in MV3;
+  // we don't await — failure here is non-fatal (the tab may have closed
+  // mid-flight). Catch silently to keep the SW from logging unhandled-rejection
+  // noise on tab churn. The badge reinforces the icon colour with a glyph
+  // (✓ for verified, ! for lookalike, blank for unknown) so the lookalike
+  // warning is impossible to miss even at small toolbar zoom levels.
   void chrome.action.setIcon({ tabId, path: iconPath(color) }).catch(() => {});
+  void chrome.action.setBadgeText({ tabId, text: badge.text }).catch(() => {});
+  if (badge.text !== '') {
+    void chrome.action
+      .setBadgeBackgroundColor({ tabId, color: badge.backgroundColor })
+      .catch(() => {});
+  }
 }
 
 // 1. Real navigations.

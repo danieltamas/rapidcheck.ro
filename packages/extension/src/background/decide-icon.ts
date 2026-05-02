@@ -74,3 +74,39 @@ export function iconPath(color: IconColor): Record<number, string> {
     48: `icons/${color}-48.png`,
   };
 }
+
+/**
+ * Visual badge overlaid on the toolbar icon by `chrome.action.setBadgeText`
+ * + `setBadgeBackgroundColor`. Reinforces the icon colour with a glyph that's
+ * legible at toolbar zoom levels and impossible to miss for the lookalike
+ * (red) state where attention matters most.
+ *
+ *   verified  → "✓"  on the green token (--onegov-color-success-ish)
+ *   lookalike → "!"  on the red token (alarm)
+ *   unknown   → ""   (no badge — keeps the toolbar clean on off-list sites)
+ *
+ * Chrome MV3 `setBadgeText` allows up to 4 chars; we ship a single glyph so
+ * Chrome's automatic font scaling never truncates. Badge text colour defaults
+ * to white in MV3 across both light and dark themes.
+ */
+export interface BadgeStyle {
+  /** 0–4 chars. Empty string clears the badge. */
+  text: string;
+  /** Hex string `#RRGGBB`. Ignored when `text === ''`. */
+  backgroundColor: string;
+}
+
+const BADGE_VERIFIED: BadgeStyle = { text: '\u2713', backgroundColor: '#0F8A4F' }; // ✓
+const BADGE_LOOKALIKE: BadgeStyle = { text: '!', backgroundColor: '#C62828' };
+const BADGE_NONE: BadgeStyle = { text: '', backgroundColor: '#000000' };
+
+export function badgeStyle(color: IconColor): BadgeStyle {
+  switch (color) {
+    case 'green':
+      return BADGE_VERIFIED;
+    case 'red':
+      return BADGE_LOOKALIKE;
+    case 'gray':
+      return BADGE_NONE;
+  }
+}

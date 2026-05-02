@@ -18,7 +18,7 @@ import { describe, expect, it } from 'bun:test';
 
 import type { VerifiedDomainList } from '@onegov/core';
 
-import { decideIcon, iconPath } from '../decide-icon.js';
+import { decideIcon, iconPath, badgeStyle } from '../decide-icon.js';
 
 const ROSTER: VerifiedDomainList = {
   version: '0.1.0-test',
@@ -140,5 +140,24 @@ describe('iconPath()', () => {
       32: 'icons/red-32.png',
       48: 'icons/red-48.png',
     });
+  });
+});
+
+describe('badgeStyle()', () => {
+  it('shows a green check for verified', () => {
+    const b = badgeStyle('green');
+    expect(b.text).toBe('\u2713');
+    expect(b.backgroundColor).toBe('#0F8A4F');
+  });
+
+  it('shows a loud red exclamation for lookalike', () => {
+    const b = badgeStyle('red');
+    expect(b.text).toBe('!');
+    expect(b.backgroundColor).toBe('#C62828');
+  });
+
+  it('shows no badge text on unknown (keeps the toolbar clean)', () => {
+    const b = badgeStyle('gray');
+    expect(b.text).toBe('');
   });
 });

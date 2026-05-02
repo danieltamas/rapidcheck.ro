@@ -29,8 +29,19 @@ interface SetIconCall {
   path?: Record<number, string>;
 }
 
+export interface SetBadgeTextCall {
+  tabId?: number;
+  text: string;
+}
+export interface SetBadgeBackgroundColorCall {
+  tabId?: number;
+  color: string;
+}
+
 export interface ChromeStub {
   setIconCalls: SetIconCall[];
+  setBadgeTextCalls: SetBadgeTextCall[];
+  setBadgeBackgroundColorCalls: SetBadgeBackgroundColorCall[];
   tabsTable: Map<number, { id: number; url?: string }>;
   fire: {
     committed: (details: CommittedDetails) => Promise<void>;
@@ -52,6 +63,8 @@ export function makeChromeStub(): ChromeStub {
   const installedListeners: Array<Listener<void>> = [];
   const messageListeners: Array<unknown> = [];
   const setIconCalls: SetIconCall[] = [];
+  const setBadgeTextCalls: SetBadgeTextCall[] = [];
+  const setBadgeBackgroundColorCalls: SetBadgeBackgroundColorCall[] = [];
   const tabsTable = new Map<number, { id: number; url?: string }>();
 
   const chromeImpl = {
@@ -104,6 +117,14 @@ export function makeChromeStub(): ChromeStub {
         setIconCalls.push(details);
         return Promise.resolve();
       },
+      setBadgeText(details: SetBadgeTextCall): Promise<void> {
+        setBadgeTextCalls.push(details);
+        return Promise.resolve();
+      },
+      setBadgeBackgroundColor(details: SetBadgeBackgroundColorCall): Promise<void> {
+        setBadgeBackgroundColorCalls.push(details);
+        return Promise.resolve();
+      },
     },
   };
 
@@ -112,6 +133,8 @@ export function makeChromeStub(): ChromeStub {
 
   return {
     setIconCalls,
+    setBadgeTextCalls,
+    setBadgeBackgroundColorCalls,
     tabsTable,
     fire: {
       async committed(details) {
