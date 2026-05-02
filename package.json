@@ -17,9 +17,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint packages scripts",
-    "test": "bun run test:core && bun run test:ui",
+    "test": "bun run test:core && bun run test:ui && bun run test:extension",
     "test:core": "bun test packages/core",
-    "test:ui": "bun test packages/ui"
+    "test:ui": "bun test packages/ui",
+    "test:extension": "bun test packages/extension"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.9.0",
