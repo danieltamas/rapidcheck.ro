@@ -7,7 +7,7 @@ Execute the START GATE before doing any work.
 ## Worktree Policy
 
 1. **Orchestrator stays on `main`.** Never switches branches.
-2. **Code Workers run in worktrees under `.worktrees/`.** Always `isolation: "worktree"`. Never create worktrees outside `.worktrees/`.
+2. **Code Workers run in worktrees under `.claude/worktrees/`.** Always `isolation: "worktree"`. The Claude Code harness manages this path automatically — do not relocate. Heads-up: subagent setup pre-installs `web-ext` (Firefox dev tooling) which transitively pulls `node-forge` containing a legacy `SocketPool.swf` file. Some antivirus products false-positive on it. Whitelist `**/node_modules/node-forge/flash/**` if your AV is noisy.
 3. **Process docs live on `main` only.** `CLAUDE.md`, `ONSTART.md`, `CODING.md`, `TESTING.md`, `SECURITY.md`, `SPEC.md`, `SITES_COVERAGE.md`, `docs/` — committed directly to `main`.
 4. **Multiple workers may run in parallel only if they touch different packages.** Two workers in `packages/core/` will collide silently. Sequence them.
 
@@ -170,7 +170,7 @@ Implement the task. Write code, write tests, commit, write DONE report.
 {paste task spec from jobs/<job>/<task>.md}
 
 ## Branch
-You are on branch: `{branch name}` in worktree `.worktrees/{branch}`.
+You are on branch: `{branch name}` in worktree `.claude/worktrees/{branch}`.
 Verify with `git branch --show-current` before writing code.
 
 ## Non-Negotiable Invariants
@@ -218,7 +218,7 @@ in Chrome and Firefox. Write a REVIEW report. You do NOT modify code or commit.
 {paste task spec}
 
 ## Branch
-Worker's branch: `{branch}` in worktree `.worktrees/{branch}-review`.
+Worker's branch: `{branch}` in worktree `.claude/worktrees/{branch}-review`.
 
 ## Hard Checks (any failure = REJECT)
 - [ ] Five invariants hold (DOM, form data, remote code, network, escape hatch)

@@ -2,6 +2,7 @@
 # CRITICAL: keep this gitignored so concurrent sub-agents can't trash each
 # other's working state. See CLAUDE.md §Worktree Policy.
 .worktrees/
+.claude/worktrees/
 
 # ─── Build outputs ─────────────────────────────────────────────────────────
 dist/

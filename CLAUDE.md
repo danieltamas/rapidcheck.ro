@@ -137,7 +137,8 @@ After implementation + tests pass, write `jobs/<job>/DONE-<task>.md`:
 #### Isolation Rules
 
 - **All sub-agents MUST use** `isolation: "worktree"`**.**
-- **Worktrees live under** `.worktrees/`**, which is gitignored.** No worker may create worktrees outside this directory.
+- **Worktrees live under** `.claude/worktrees/`**, which is gitignored.** That's where the Claude Code harness creates them; do not relocate. `.worktrees/` is also gitignored as a defensive fallback.
+- **Subagent setup pre-installs `web-ext` + transitive deps** (incl. `node-forge` shipping a legacy `SocketPool.swf` that some antivirus products false-positive on). The SWF is dormant Flash; never executed in modern Node. Add `**/node_modules/node-forge/flash/**` to AV exclusions if needed.
 - **The orchestrator stays on** `main`**.** It is the ONLY agent that touches `main`.
 - **Workers NEVER touch** `main`**, group branches, or any branch they didn't create.** They only work on their task branch.
 - **Reviewer runs in a separate worktree** — reads the worker's branch, never modifies it.
@@ -182,7 +183,7 @@ main
 - Delete task branches after group merge: `git branch -d job/<job>/<group>-*`
 - Delete group branch after main merge
 - `git worktree prune`
-- Delete the worktree directory: `rm -rf .worktrees/<branch>`
+- Delete the worktree directory: `rm -rf .claude/worktrees/<id>`
 
 ---
 
@@ -227,7 +228,7 @@ onegov.ro/                      # repo root (project codename: onegov.ro)
 ├── e2e/                        # Playwright cross-browser tests
 ├── jobs/                       # job specs, DONE reports, REVIEW reports, QA artifacts
 ├── docs/                       # ARCHITECTURE.md, LOG.md
-├── .worktrees/                 # gitignored — sub-agent worktrees live here
+├── .claude/worktrees/          # gitignored — Claude Code harness creates subagent worktrees here
 ├── SPEC.md                     # v0.1 execution plan
 ├── SITES_COVERAGE.md           # verified Romanian gov site inventory
 ├── CLAUDE.md                   # this file (agent operating manual)
