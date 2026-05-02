@@ -1,0 +1,113 @@
+# ─── Multi-agent worktrees ─────────────────────────────────────────────────
+# CRITICAL: keep this gitignored so concurrent sub-agents can't trash each
+# other's working state. See CLAUDE.md §Worktree Policy.
+.worktrees/
+
+# ─── Build outputs ─────────────────────────────────────────────────────────
+dist/
+build/
+out/
+*.zip
+*.xpi
+*.crx
+packages/*/dist/
+packages/*/build/
+packages/extension/web-ext-artifacts/
+
+# ─── Node / npm / bun ─────────────────────────────────────────────────────
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+yarn-error.log
+npm-debug.log*
+pnpm-debug.log*
+bun-debug.log*
+*.tsbuildinfo
+
+# ─── TypeScript / cache ───────────────────────────────────────────────────
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+.rollup.cache/
+.eslintcache
+.stylelintcache
+
+# ─── Test outputs ─────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+e2e/.auth/
+e2e/screenshots/
+e2e/videos/
+e2e/traces/
+
+# ─── Environment & secrets ────────────────────────────────────────────────
+# Never commit anything resembling a credential. If you need an example,
+# commit `.env.example` with placeholder values only.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets/
+.secrets/
+private/
+*.private.json
+
+# Web-Store / AMO signing artefacts
+*.signed.xpi
+chrome-store-key.json
+amo-credentials.json
+web-ext-config.local.js
+.web-ext-state.json
+
+# ─── Editor / OS ──────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+*.swp
+*.swo
+*~
+.fleet/
+.zed/
+
+# ─── Logs ─────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ─── Misc local-only ──────────────────────────────────────────────────────
+*.local
+.tmp/
+tmp/
+scratch/
+sandbox/
+
+# ─── Job artefacts that shouldn't ship ────────────────────────────────────
+# Per-job QA screenshots and traces are committed under jobs/<job>/qa/
+# so the orchestrator can audit them — but raw browser dumps aren't.
+jobs/*/qa/raw/
+jobs/*/scratch/
+
+# ─── Generated docs ──────────────────────────────────────────────────────
+docs/api/
+docs/coverage/
+
+# ─── Graphify (if used) ──────────────────────────────────────────────────
+graphify-out/
