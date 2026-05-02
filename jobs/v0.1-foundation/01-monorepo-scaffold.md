@@ -43,7 +43,7 @@ Stand up the Bun-workspaces monorepo so subsequent tracks can begin in parallel.
 - [ ] `bun run check` succeeds
 - [ ] `bun run build` produces `dist/extension/` containing at minimum `manifest.json`, `background.js`, `content.js`, `popup.html`, `popup.js` — even if the JS files are essentially empty
 - [ ] The unpacked `dist/extension/` loads in **Chrome** without error (no console errors in service worker or extension page)
-- [ ] The unpacked `dist/extension/` loads in **Firefox** via `bunx web-ext run --source-dir dist/extension/` without error
+- [ ] The unpacked `dist/extension/` loads in **Firefox** via manual `about:debugging` → "Load Temporary Add-on" → pick `dist/extension/manifest.json`. **Do NOT install `web-ext` in this task.** It transitively pulls `node-forge` containing a Flash-era `SocketPool.swf` that some antivirus products false-positive on. `web-ext` will be added in a follow-up packaging task with explicit AV whitelist guidance for contributors.
 - [ ] `.eslintrc.cjs` and `.prettierrc.json` committed at root (basic config; the custom invariant lint rules from `CODING.md §Tooling` can be added in a follow-up task)
 - [ ] Empty `scripts/` dir contains `validate-packs.ts` stub
 - [ ] Empty `rule-packs/` dir contains `_verified-domains.json` with just `{ "version": "0.0.0", "updatedAt": "<today>", "domains": [] }` (so packs validation has something to load even before Track 5 lands)
@@ -66,7 +66,7 @@ Per `CLAUDE.md §Step 3`, every task needs tests. For this scaffold:
 
 - **Five invariants are not testable yet** (no runtime), but `manifest.json` must already encode invariants 4 + 5: minimal `host_permissions` (only ship-list domains), minimal `permissions` (`storage`, `scripting`, `activeTab`, `webNavigation` only — nothing else).
 - **No `chrome.*` outside `packages/extension`.**
-- **No new runtime dependencies** beyond: `preact`, `psl`, `idna-uts46-hx`, `zod`. Dev deps allowed: `typescript`, `vite`, `@types/chrome`, `@types/firefox-webext-browser`, `web-ext`, `prettier`, `eslint`, `@typescript-eslint/*`.
+- **No new runtime dependencies** beyond: `preact`, `psl`, `idna-uts46-hx`, `zod`. Dev deps allowed: `typescript`, `vite`, `@types/chrome`, `@types/firefox-webext-browser`, `prettier`, `eslint`, `@typescript-eslint/*`. **Explicitly NOT in this task: `web-ext`, `addons-linter`** — both pull `node-forge` (Flash polyfill triggers AV). They land in a follow-up packaging task.
 - **MAX 500 lines per file.**
 - **TypeScript strict, no `any`.**
 - **English in code; Romanian only in user-facing UI text** (none yet — this is scaffold).
