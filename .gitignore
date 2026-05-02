@@ -111,3 +111,6 @@ docs/coverage/
 
 # ─── Graphify (if used) ──────────────────────────────────────────────────
 graphify-out/
+
+# ─── Claude Code local settings (user-specific) ─────
+.claude/settings.local.json
