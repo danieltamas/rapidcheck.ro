@@ -1,0 +1,143 @@
+{
+  "$schema": "https://onegov.ro/schemas/rule-pack-v1.json",
+  "domain": "anaf.ro",
+  "version": "0.1.0",
+  "routes": [
+    {
+      "_comment": "Homepage at /anaf/internet/ANAF/. ANAF runs IBM WebSphere Portal (Lotus / wptheme* CSS classes) — these are stable across IBM portal deployments and across page templates inside ANAF. We target wptheme* and the lm-dynamic-title pattern that wraps every portlet heading. Selector source: direct fetch of https://www.anaf.ro/anaf/internet/ANAF/ on 2026-05-02. Routes match the rewriting WebSphere does to URLs (the path begins with /anaf/internet/ANAF/).",
+      "match": { "pattern": "^/anaf/internet/ANAF/?$" },
+      "layout": "landing",
+      "extract": [
+        {
+          "_comment": "Header logo / brand mark — stable WebSphere wpthemeLogo class. The actual <img> is the only descendant <img> with alt=\"[ANAF]\".",
+          "id": "brand-logo",
+          "selector": ".wpthemeLogo img[alt=\"[ANAF]\"]",
+          "type": "image",
+          "attrs": { "src": "src", "alt": "alt" }
+        },
+        {
+          "_comment": "Breadcrumb trail — wpthemeCrumbTrail is a stable WebSphere class. Each link in the trail is a direct child <a>.",
+          "id": "breadcrumb-links",
+          "selector": ".wpthemeCrumbTrail a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Top navigation menu — ul.nav-menu is the page-wide nav, populated by the WebSphere navigation portlet. We pick its top-level <li> > <a> children only (deeper menu items are flyouts).",
+          "id": "main-nav",
+          "selector": "ul.nav-menu > li > a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Portlet titles — every WebSphere portlet exposes its title in span.lm-dynamic-title. There are typically 3–4 visible portlets on the homepage (Noutati ANAF, Comunicate de presa, Transparenta decizionala, Structura ANAF).",
+          "id": "portlet-titles",
+          "selector": "span.lm-dynamic-title",
+          "type": "heading",
+          "multiple": true,
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Main content area — wpthemeMainContent role=\"main\" is the canonical landmark. The renderer can use this to clip everything else if it ever needs to.",
+          "id": "main-content-marker",
+          "selector": "div.wpthemeMainContent[role=\"main\"]",
+          "type": "paragraph",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Footer — wpthemeFooter role=\"contentinfo\" is the canonical landmark for ANAF / WebSphere footers.",
+          "id": "footer-marker",
+          "selector": "footer.wpthemeFooter[role=\"contentinfo\"]",
+          "type": "paragraph",
+          "attrs": { "text": "textContent" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "layout": "landing-simplified",
+          "hide": ["breadcrumb-links", "footer-marker"],
+          "emphasize": ["brand-logo", "portlet-titles", "main-nav"]
+        },
+        "standard": {
+          "layout": "landing",
+          "emphasize": ["brand-logo", "main-nav", "portlet-titles"]
+        },
+        "pro": {
+          "layout": "landing-dense",
+          "emphasize": ["main-nav", "portlet-titles", "breadcrumb-links"]
+        },
+        "journalist": {
+          "layout": "landing-investigative",
+          "emphasize": ["portlet-titles", "main-content-marker"]
+        }
+      }
+    },
+    {
+      "_comment": "Servicii Online inner page (the public-facing card landing for online services). The same WebSphere theme markup applies; the page exposes 4 \"flip cards\" (.cardi, .card, .card2, .card3, .card4) with anchors inside .card-back* that link to authentication, declarations, API registration, and non-residents flows. Selector source: direct fetch of https://www.anaf.ro/anaf/internet/ANAF/servicii_online/ on 2026-05-02.",
+      "match": { "pattern": "^/anaf/internet/ANAF/servicii_online/?" },
+      "layout": "lookup",
+      "extract": [
+        {
+          "_comment": "Page title surfaced via the portlet's lm-dynamic-title span (\"Inregistrare utilizatori\" on this page).",
+          "id": "page-title",
+          "selector": "span.lm-dynamic-title",
+          "type": "heading",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Breadcrumb — same wpthemeCrumbTrail pattern as the homepage.",
+          "id": "breadcrumb-links",
+          "selector": ".wpthemeCrumbTrail a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Service cards — every flip-card on the page exposes its destination via an anchor with class \"btn brighten\" inside .card-back*. We collect all four.",
+          "id": "service-cards",
+          "selector": "a.btn.brighten",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Card front-face titles — each card surfaces its label inside .container .content > b > p.",
+          "id": "card-labels",
+          "selector": ".container .content p",
+          "type": "heading",
+          "multiple": true,
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Top navigation — same as homepage.",
+          "id": "main-nav",
+          "selector": "ul.nav-menu > li > a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "layout": "lookup-simplified",
+          "hide": ["breadcrumb-links", "main-nav"],
+          "emphasize": ["page-title", "card-labels", "service-cards"]
+        },
+        "standard": {
+          "layout": "lookup",
+          "emphasize": ["page-title", "service-cards"]
+        },
+        "pro": {
+          "layout": "lookup-dense",
+          "emphasize": ["service-cards", "main-nav", "breadcrumb-links"]
+        },
+        "journalist": {
+          "layout": "lookup-investigative",
+          "emphasize": ["service-cards", "card-labels", "page-title"]
+        }
+      }
+    }
+  ]
+}

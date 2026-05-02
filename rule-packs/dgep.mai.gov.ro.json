@@ -1,0 +1,145 @@
+{
+  "$schema": "https://onegov.ro/schemas/rule-pack-v1.json",
+  "domain": "dgep.mai.gov.ro",
+  "version": "0.1.0",
+  "routes": [
+    {
+      "_comment": "Homepage of DGEP — most-complained category on fara-hartie.gov.ro per SITES_COVERAGE.md sec 3.2 (300+ reports in <30 days). Tech: WordPress + Bootstrap 4 theme \"template cms\". Stable hooks: section.main, header.header, nav#main-menu, ul#menu-primary-menu, article#post-NNNN.article. The four orange CTA cards under the carousel are the most important elements (Cartea Electronica, Programare CEI, Servicii MAI, Aplicatii CEI) — pensioner persona must surface those first. Selector source: direct fetch of https://dgep.mai.gov.ro/ on 2026-05-02 (74KB).",
+      "match": { "pattern": "^/$" },
+      "layout": "landing",
+      "extract": [
+        {
+          "_comment": "Page brand — both the MAI logo and the institution name are inside header.header. We surface the institution-name <a> which sits at .text-depabd > a. Class .text-depabd is bespoke to this site.",
+          "id": "institution-name",
+          "selector": "header.header .text-depabd a",
+          "type": "heading",
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Search form — top-right of the header. Bootstrap class .search-field is stable.",
+          "id": "search-form",
+          "selector": "form.form-inline input.search-field",
+          "type": "form",
+          "attrs": { "placeholder": "placeholder", "name": "name" }
+        },
+        {
+          "_comment": "Top navigation — ul#menu-primary-menu is the WordPress-generated primary menu. We collect top-level <li> > <a> children only.",
+          "id": "primary-nav",
+          "selector": "ul#menu-primary-menu > li > a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Hero CTA cards — the four orange action cards directly under the carousel. They are the highest-priority calls-to-action (Cartea Electronica, Programare CEI, Servicii electronice MAI, Aplicatii CEI). Selector targets the bg-warning anchor inside .card-body within section.main. The .bg-warning class is the only thing distinguishing CTAs from regular link cards.",
+          "id": "hero-cta",
+          "selector": "section.main .card-body a.bg-warning",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Latest announcements — every WordPress post in the homepage feed is wrapped in <article id=\"post-NNNN\" class=\"article ...\">. We collect the headline anchors inside h5.card-title.",
+          "id": "latest-news",
+          "selector": "article.article h5.card-title a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Carousel slides — the homepage carousel #custom-carousel. We surface its top-level item count via div.carousel-item, useful for the journalist persona that wants the news rotation visible inline.",
+          "id": "carousel-items",
+          "selector": "#custom-carousel .carousel-item",
+          "type": "paragraph",
+          "multiple": true,
+          "attrs": { "text": "textContent" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "_comment": "Pensioner — DGEP's CEI / appointment booking is the most-complained gov flow on fara-hartie. Strip everything that isn't a CTA. Hide carousel and primary-nav (overwhelming), surface hero-cta cards as one-tap-per-screen tiles. Emphasize the appointment booking CTA.",
+          "layout": "landing-simplified",
+          "hide": ["carousel-items", "primary-nav", "search-form"],
+          "emphasize": ["institution-name", "hero-cta"]
+        },
+        "standard": {
+          "layout": "landing",
+          "emphasize": ["institution-name", "hero-cta", "latest-news"]
+        },
+        "pro": {
+          "layout": "landing-dense",
+          "emphasize": ["primary-nav", "hero-cta", "latest-news", "search-form"]
+        },
+        "journalist": {
+          "layout": "landing-investigative",
+          "emphasize": ["latest-news", "carousel-items", "hero-cta"]
+        }
+      }
+    },
+    {
+      "_comment": "Servicii / Evidenta Persoanelor category page — the appointment-flow landing per task spec. Same theme, different layout (WordPress category archive). Top of page renders an <h3> category title; a subnav of related services (#post-navigate); article body in .ajax-content. Selector source: direct fetch of https://dgep.mai.gov.ro/category/servicii/evidenta-persoanelor/ on 2026-05-02 (49KB).",
+      "match": { "pattern": "^/category/servicii/" },
+      "layout": "service-flow",
+      "extract": [
+        {
+          "_comment": "Category title — <h3 class=\"font-weight-bold\"> inside header.pt-5.mb-4.border-bottom inside section.main. The category name lives here.",
+          "id": "service-title",
+          "selector": "section.main header h3",
+          "type": "heading",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Service sub-navigation — #post-navigate contains the related-service quick-links (Cadru Legal, Documente Necesare, Formulare, etc.). Each link has a stable data-postid attribute.",
+          "id": "service-subnav",
+          "selector": "#post-navigate a[data-postid]",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href", "postid": "data-postid" }
+        },
+        {
+          "_comment": "Service description body — .ajax-content holds the WordPress article body for this category. Pure paragraph extraction.",
+          "id": "service-body",
+          "selector": ".ajax-content",
+          "type": "paragraph",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Primary navigation — same site-wide menu as homepage.",
+          "id": "primary-nav",
+          "selector": "ul#menu-primary-menu > li > a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Cross-category list — sidebar links to other services. We collect from the footer Categorii section.",
+          "id": "related-categories",
+          "selector": "footer a[href*=\"/category/\"]",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "_comment": "Pensioner appointment flow — the entire screen reduces to: title, the service description, and one-tap subnav buttons. Hide everything else.",
+          "layout": "service-flow-simplified",
+          "hide": ["primary-nav", "related-categories"],
+          "emphasize": ["service-title", "service-subnav", "service-body"]
+        },
+        "standard": {
+          "layout": "service-flow",
+          "emphasize": ["service-title", "service-subnav", "service-body"]
+        },
+        "pro": {
+          "layout": "service-flow-dense",
+          "emphasize": ["service-subnav", "primary-nav", "related-categories", "service-body"]
+        },
+        "journalist": {
+          "layout": "service-flow-investigative",
+          "emphasize": ["service-title", "service-body", "related-categories"]
+        }
+      }
+    }
+  ]
+}

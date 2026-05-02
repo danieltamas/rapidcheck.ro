@@ -1,0 +1,161 @@
+{
+  "$schema": "https://onegov.ro/schemas/rule-pack-v1.json",
+  "domain": "portal.just.ro",
+  "version": "0.1.0",
+  "routes": [
+    {
+      "_comment": "Homepage at /SitePages/acasa.aspx — Microsoft SharePoint 2010 (v4master). Self-admitted broken per SITES_COVERAGE.md sec 3.3: a permanent <font color=\"red\"> banner directs users to the alternative search engine at /SitePages/dosare.aspx during \"maintenance\". Stable hooks: div.header > ul.main-nav, #searchBoxOuter, #s4-bodyContainer, #ctl00_MSO_ContentDiv. The page renders a Romania map (via Raphael.js) with court instances overlaid as anchors. Selector source: direct fetch of https://portal.just.ro/SitePages/acasa.aspx on 2026-05-02 (66KB, IE=8 compatibility forced).",
+      "match": { "pattern": "^/SitePages/acasa\\.aspx$" },
+      "layout": "landing",
+      "extract": [
+        {
+          "_comment": "Site-wide top navigation — div.header > ul.main-nav holds Prima pagina / Acces programatic / Harta site / Contact. Stable.",
+          "id": "main-nav",
+          "selector": "div.header ul.main-nav a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Search box for the global SharePoint search. The input has SharePoint-generated GUID id (unstable) but the wrapping div #searchBoxOuter is stable.",
+          "id": "search-box",
+          "selector": "#searchBoxOuter input[type=\"text\"]",
+          "type": "form",
+          "attrs": { "placeholder": "title", "name": "name" }
+        },
+        {
+          "_comment": "Search examples link — anchor with class .search_ex pointing to /SitePages/despre.aspx#cautare. Stable.",
+          "id": "search-examples-link",
+          "selector": "a.search_ex",
+          "type": "link",
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Maintenance / advisory banner — the permanent <font color=\"red\"> warning that points users to the alternative search engine. The pro persona hides this (they know to skip it). Selector targets <font color=\"red\"> inside the main content area, which is unique to this advisory.",
+          "id": "advisory-banner",
+          "selector": "#ctl00_MSO_ContentDiv font[color=\"red\"]",
+          "type": "paragraph",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Court instance links — the homepage map uses regional <div data-rel=\"...\"> blocks containing <ul><li><a href=\"../<id>/SitePages/acasa_default.aspx?id_inst=<id>\">Tribunalul/Judecatoria <name></a>. We collect every court anchor across all regions.",
+          "id": "court-links",
+          "selector": "div[data-rel] ul li a[href*=\"acasa_default.aspx\"]",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "_comment": "Pensioner — keep advisory visible (they need to know about the alt search) and one-tap nav. Hide search box and the geographic map links.",
+          "layout": "landing-simplified",
+          "hide": ["search-box", "court-links"],
+          "emphasize": ["advisory-banner", "main-nav", "search-examples-link"]
+        },
+        "standard": {
+          "layout": "landing",
+          "emphasize": ["advisory-banner", "search-box", "main-nav"]
+        },
+        "pro": {
+          "_comment": "Pro persona hides the advisory banner — they know what to do and want the search-form front and centre.",
+          "layout": "landing-dense",
+          "hide": ["advisory-banner"],
+          "emphasize": ["search-box", "court-links", "main-nav"]
+        },
+        "journalist": {
+          "_comment": "Journalist persona surfaces the advisory and the map of courts (the broken-by-design self-admission IS the story).",
+          "layout": "landing-investigative",
+          "emphasize": ["advisory-banner", "court-links", "search-examples-link"]
+        }
+      }
+    },
+    {
+      "_comment": "Case search at /SitePages/dosare.aspx — the alternative search engine that the homepage advisory points to. SharePoint webparts generate GUID IDs that are NOT stable across deployments, but the structural anchors are: #page-title (stable id), .BreadCrumbWrap (stable class), table.s4-wpTopTable (stable SharePoint class), and the <b>label</b> wrappers inside each filter slicer. We target the labels for the input fields rather than the inputs themselves. Selector source: direct fetch of http://portal.just.ro/SitePages/dosare.aspx on 2026-05-02 (63KB).",
+      "match": { "pattern": "^/SitePages/dosare\\.aspx$" },
+      "layout": "case-search",
+      "extract": [
+        {
+          "_comment": "Page title — #page-title is a stable site-author-defined id, distinct from SharePoint's auto-generated GUID ids.",
+          "id": "page-title",
+          "selector": "#page-title",
+          "type": "heading",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Breadcrumb — .BreadCrumbWrap is the stable SharePoint breadcrumb container.",
+          "id": "breadcrumb",
+          "selector": ".BreadCrumbWrap a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Filter labels — every search filter uses a <b>Label</b><br/><input> pattern inside table.s4-wpTopTable. Listing the labels lets the renderer build a clean form even though the actual inputs have unstable GUID ids.",
+          "id": "filter-labels",
+          "selector": "table.s4-wpTopTable b",
+          "type": "heading",
+          "multiple": true,
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Filter inputs — every visible filter input is type=text inside table.s4-wpTopTable. We collect them all so the renderer can match each filter-label to its input.",
+          "id": "filter-inputs",
+          "selector": "table.s4-wpTopTable input[type=\"text\"]",
+          "type": "form",
+          "multiple": true,
+          "attrs": { "name": "name", "id": "id" }
+        },
+        {
+          "_comment": "Apply-filters action — the SharePoint slicer apply control. ms-applyfiltersinactive is the stable class when no filter is active; ms-applyfiltersactive when active. Catch both.",
+          "id": "apply-filters-action",
+          "selector": "[class*=\"ms-applyfilters\"]",
+          "type": "form",
+          "multiple": true,
+          "attrs": { "title": "title" }
+        },
+        {
+          "_comment": "Reset link — anchor pointing back at dosare.aspx with text \"Reinitializare cautare\". Stable href is the cleanest signal.",
+          "id": "reset-link",
+          "selector": "a[href=\"dosare.aspx\"]",
+          "type": "link",
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Site-wide nav — same as homepage.",
+          "id": "main-nav",
+          "selector": "div.header ul.main-nav a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "_comment": "Pensioner case search — strip everything except the form. One label, one input per row.",
+          "layout": "case-search-simplified",
+          "hide": ["main-nav", "breadcrumb"],
+          "emphasize": ["page-title", "filter-labels", "filter-inputs", "apply-filters-action"]
+        },
+        "standard": {
+          "layout": "case-search",
+          "emphasize": ["page-title", "filter-labels", "filter-inputs", "apply-filters-action"]
+        },
+        "pro": {
+          "layout": "case-search-dense",
+          "emphasize": [
+            "filter-labels",
+            "filter-inputs",
+            "apply-filters-action",
+            "reset-link",
+            "main-nav"
+          ]
+        },
+        "journalist": {
+          "layout": "case-search-investigative",
+          "emphasize": ["page-title", "filter-labels", "filter-inputs", "breadcrumb"]
+        }
+      }
+    }
+  ]
+}
