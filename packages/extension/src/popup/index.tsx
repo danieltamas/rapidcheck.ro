@@ -124,7 +124,6 @@ function PrimaryToggle({ on, onChange }: PrimaryToggleProps) {
       <div class="pop-toggle-row">
         <div class="pop-toggle-meta">
           <span class="pop-toggle-meta__label">Aplică interfața onegov</span>
-          <span class="pop-toggle-meta__hint">comutator principal</span>
         </div>
         <label class={`pop-switch${on ? ' pop-switch--on' : ''}`}>
           <input
