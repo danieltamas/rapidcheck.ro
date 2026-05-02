@@ -88,6 +88,21 @@ function copyExtensionAssets(): Plugin {
           if (statSync(s).isFile()) copyIfChanged(s, resolve(iconsOut, f));
         }
       }
+
+      // rule packs — exposed via `web_accessible_resources` so the SW can
+      // load them through `chrome.runtime.getURL("rule-packs/<domain>.json")`.
+      // Copying here keeps the dist directory self-contained: load unpacked,
+      // navigate to a verified domain, content script renders.
+      const packsSrc = resolve(root, 'rule-packs');
+      if (existsSync(packsSrc)) {
+        const packsOut = resolve(outDir, 'rule-packs');
+        mkdirSync(packsOut, { recursive: true });
+        for (const f of readdirSync(packsSrc)) {
+          if (!f.endsWith('.json')) continue;
+          const s = resolve(packsSrc, f);
+          if (statSync(s).isFile()) copyIfChanged(s, resolve(packsOut, f));
+        }
+      }
     },
   };
 }

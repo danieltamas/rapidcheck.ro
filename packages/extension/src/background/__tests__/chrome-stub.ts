@@ -38,13 +38,19 @@ export interface ChromeStub {
     installed: () => Promise<void>;
   };
   // expose listener registration counts for sanity assertions
-  listenerCounts: () => { committed: number; activated: number; installed: number };
+  listenerCounts: () => {
+    committed: number;
+    activated: number;
+    installed: number;
+    message: number;
+  };
 }
 
 export function makeChromeStub(): ChromeStub {
   const committedListeners: Array<Listener<CommittedDetails>> = [];
   const activatedListeners: Array<Listener<ActivatedInfo>> = [];
   const installedListeners: Array<Listener<void>> = [];
+  const messageListeners: Array<unknown> = [];
   const setIconCalls: SetIconCall[] = [];
   const tabsTable = new Map<number, { id: number; url?: string }>();
 
@@ -76,6 +82,21 @@ export function makeChromeStub(): ChromeStub {
         addListener(cb: Listener<void>) {
           installedListeners.push(cb);
         },
+      },
+      // Track 4b adds an onMessage handler. We accept the registration and
+      // record it so the listener-count assertion can verify wiring; the
+      // handler logic itself is unit-tested directly via `messaging.test.ts`.
+      onMessage: {
+        addListener(cb: unknown) {
+          messageListeners.push(cb);
+        },
+      },
+      // `loadBundled` calls `chrome.runtime.getURL` from inside the SW. The
+      // icon state-machine tests never fire it, but the stub must expose the
+      // method so module evaluation does not throw. Returns a chrome-extension
+      // URL by convention; never actually fetched here.
+      getURL(path: string): string {
+        return `chrome-extension://test/${path}`;
       },
     },
     action: {
@@ -113,6 +134,7 @@ export function makeChromeStub(): ChromeStub {
       committed: committedListeners.length,
       activated: activatedListeners.length,
       installed: installedListeners.length,
+      message: messageListeners.length,
     }),
   };
 }

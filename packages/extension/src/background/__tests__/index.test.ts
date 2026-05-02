@@ -51,11 +51,13 @@ beforeEach(() => {
 });
 
 describe('background SW — listener wiring', () => {
-  it('registers exactly one listener on each of the three event sources', () => {
+  it('registers exactly one listener on each event source (incl. onMessage)', () => {
     const counts = chromeStub.listenerCounts();
     expect(counts.committed).toBe(1);
     expect(counts.activated).toBe(1);
     expect(counts.installed).toBe(1);
+    // Track 4b adds the onMessage handler for content + popup.
+    expect(counts.message).toBe(1);
   });
 });
 

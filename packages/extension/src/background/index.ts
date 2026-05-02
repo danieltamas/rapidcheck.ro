@@ -33,6 +33,7 @@
 import type { VerifiedDomainList } from '@onegov/core';
 
 import { decideIcon, iconPath, type IconColor } from './decide-icon.js';
+import { registerMessageHandlers } from './messaging.js';
 import verifiedList from '../../../../rule-packs/_verified-domains.json';
 
 // The JSON import is typed as `unknown` to keep the cast explicit. The
@@ -89,5 +90,11 @@ chrome.runtime.onInstalled.addListener(() => {
       // becomes a no-op — navigation events will still paint correctly.
     });
 });
+
+// 4. Cross-context message routing (Track 4b) — content script and popup ask
+// the SW to verify URLs and load rule packs so neither has to bundle the
+// heavy psl + idna-uts46-hx + Zod stack. The icon state machine above is
+// untouched; messaging is additive.
+registerMessageHandlers(ROSTER);
 
 export {};
