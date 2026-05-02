@@ -1,48 +1,114 @@
 /**
  * Rule-pack loader and validator.
  *
- * STATUS: Stubs. Track 2 owns the Zod schema mirroring `types.ts` and the
- * bundled-fetch helper. The signatures here are the contract the content
- * script (Track 4) wires against.
+ * Rule packs are declarative JSON shipped inside the extension bundle. The
+ * five-invariants policy forbids `eval`/`Function`/remote code, so the loader
+ * does two things and only two things:
  *
- * The `fetcher` indirection keeps `@onegov/core` browser-API-free: the content
- * script supplies a function that resolves to `chrome.runtime.getURL(...)` and
- * fetches, but core itself never imports `chrome.*`.
+ *   1. Validate an arbitrary `unknown` payload as a `RulePack` using a Zod
+ *      schema that mirrors `types.ts` exactly. Every object schema is
+ *      `.strict()` so unknown keys are rejected — a future SPEC change must
+ *      go through the type contract first.
+ *   2. Load a bundled pack via an injected `fetcher`. The fetcher is supplied
+ *      by the extension content script (wired to `chrome.runtime.getURL`),
+ *      keeping `@onegov/core` browser-API-free.
+ *
+ * Behaviour summary (matches the task spec):
+ *   - `validate` throws a `ZodError` on any malformed input, including extra
+ *     unknown fields at the root or inside nested objects.
+ *   - `loadBundled` swallows fetcher errors (e.g. 404, missing pack) and
+ *     returns `null` — the content script then exits cleanly. Validation
+ *     errors are NOT swallowed: a malformed bundled pack is a build-time bug
+ *     that should surface loudly.
  */
+
+import { z } from 'zod';
 
 import type { RulePack } from './types.js';
 
+const PERSONA_VALUES = ['pensioner', 'standard', 'pro', 'journalist'] as const;
+const EXTRACT_TYPES = ['heading', 'paragraph', 'list', 'table', 'form', 'link', 'image'] as const;
+
+const ExtractRuleSchema = z
+  .object({
+    id: z.string().min(1),
+    selector: z.string().min(1),
+    type: z.enum(EXTRACT_TYPES),
+    attrs: z.record(z.string()).optional(),
+    multiple: z.boolean().optional(),
+  })
+  .strict();
+
+const PersonaOverrideSchema = z
+  .object({
+    layout: z.string().min(1).optional(),
+    hide: z.array(z.string()).optional(),
+    emphasize: z.array(z.string()).optional(),
+  })
+  .strict();
+
+const PersonasSchema = z
+  .object(
+    PERSONA_VALUES.reduce<Record<(typeof PERSONA_VALUES)[number], z.ZodTypeAny>>(
+      (acc, persona) => {
+        acc[persona] = PersonaOverrideSchema.optional();
+        return acc;
+      },
+      {} as Record<(typeof PERSONA_VALUES)[number], z.ZodTypeAny>,
+    ),
+  )
+  .strict();
+
+const RouteSchema = z
+  .object({
+    match: z
+      .object({
+        pattern: z.string().min(1),
+      })
+      .strict(),
+    layout: z.string().min(1),
+    extract: z.array(ExtractRuleSchema),
+    personas: PersonasSchema.optional(),
+  })
+  .strict();
+
+const RulePackSchema = z
+  .object({
+    $schema: z.string().min(1),
+    domain: z.string().min(1),
+    version: z.string().min(1),
+    routes: z.array(RouteSchema),
+  })
+  .strict();
+
 /**
- * Validate an arbitrary `unknown` payload as a `RulePack`. Throws a Zod error
- * when validation fails.
+ * Validate an arbitrary `unknown` payload as a `RulePack`. Throws `ZodError`
+ * on any deviation from the contract. The cast to `RulePack` is safe: the
+ * Zod schema is the runtime mirror of the static type.
  */
 export function validate(input: unknown): RulePack {
-  // TODO(Track 2 / rule-pack-loader): real Zod schema mirroring SPEC §5.1.
-  // The shape below is intentionally minimal so this stub never silently
-  // accepts garbage — it asserts the bare-minimum surface and casts.
-  if (
-    typeof input !== 'object' ||
-    input === null ||
-    !('domain' in input) ||
-    !('routes' in input)
-  ) {
-    throw new Error('rule-pack-loader: stub validate rejected non-pack input');
-  }
-  return input as RulePack;
+  return RulePackSchema.parse(input) as RulePack;
 }
 
 /**
- * Load a bundled rule pack for the given eTLD+1 via the supplied `fetcher`.
- * Returns `null` when the pack is missing or invalid; never throws.
+ * Load a bundled rule pack for the given eTLD+1. The `fetcher` resolves a
+ * path (relative to the extension origin) to its parsed JSON payload —
+ * supplied by the content script as something like
+ * `(p) => fetch(chrome.runtime.getURL(p)).then((r) => r.json())`.
+ *
+ * Returns `null` when the fetcher rejects (pack file missing, network error,
+ * etc.). Validation errors propagate: a malformed bundled pack is a build-
+ * time defect that must not be silently ignored.
  */
 export async function loadBundled(
   domain: string,
   fetcher: (url: string) => Promise<unknown>,
 ): Promise<RulePack | null> {
+  let raw: unknown;
   try {
-    const data = await fetcher(`rule-packs/${domain}.json`);
-    return validate(data);
+    raw = await fetcher(`rule-packs/${domain}.json`);
   } catch {
     return null;
   }
+  return validate(raw);
 }
