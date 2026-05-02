@@ -32,7 +32,7 @@
 
 import type { VerifiedDomainList } from '@onegov/core';
 
-import { decideIcon, iconPath, badgeStyle, type IconColor } from './decide-icon.js';
+import { decideTabState, badgeStyle, type TabState } from './decide-icon.js';
 import { registerMessageHandlers } from './messaging.js';
 import verifiedList from '../../../../rule-packs/_verified-domains.json';
 
@@ -49,15 +49,14 @@ const ROSTER = verifiedList as unknown as VerifiedDomainList;
  */
 function applyIconForUrl(tabId: number, url: string | undefined): void {
   if (!url) return;
-  const color: IconColor = decideIcon(url, ROSTER);
-  const badge = badgeStyle(color);
-  // setIcon / setBadgeText / setBadgeBackgroundColor return Promises in MV3;
-  // we don't await — failure here is non-fatal (the tab may have closed
-  // mid-flight). Catch silently to keep the SW from logging unhandled-rejection
-  // noise on tab churn. The badge reinforces the icon colour with a glyph
-  // (✓ for verified, ! for lookalike, blank for unknown) so the lookalike
-  // warning is impossible to miss even at small toolbar zoom levels.
-  void chrome.action.setIcon({ tabId, path: iconPath(color) }).catch(() => {});
+  const state: TabState = decideTabState(url, ROSTER);
+  const badge = badgeStyle(state);
+  // v0.1.1 simplification: the toolbar badge is the SOLE per-tab signal.
+  // The icon stays as the neutral brand mark from the manifest's default_icon
+  // (no chrome.action.setIcon call). `✓` green = verified, `!` red = lookalike,
+  // blank = unknown. Failures are non-fatal (the tab may have closed mid-flight)
+  // so promises are caught silently to keep the SW free of unhandled-rejection
+  // noise on tab churn.
   void chrome.action.setBadgeText({ tabId, text: badge.text }).catch(() => {});
   if (badge.text !== '') {
     void chrome.action

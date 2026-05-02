@@ -18,7 +18,7 @@ import { describe, expect, it } from 'bun:test';
 
 import type { VerifiedDomainList } from '@onegov/core';
 
-import { decideIcon, iconPath, badgeStyle } from '../decide-icon.js';
+import { decideIcon, decideTabState, iconPath, badgeStyle } from '../decide-icon.js';
 
 const ROSTER: VerifiedDomainList = {
   version: '0.1.0-test',
@@ -37,127 +37,129 @@ const EMPTY: VerifiedDomainList = {
 
 describe('decideIcon() — verified path', () => {
   it('returns green for an exact eTLD+1 match', () => {
-    expect(decideIcon('https://anaf.ro/', ROSTER)).toBe('green');
+    expect(decideIcon('https://anaf.ro/', ROSTER)).toBe("verified");
   });
 
   it('returns green for a www subdomain', () => {
-    expect(decideIcon('https://www.anaf.ro/foo?bar=baz', ROSTER)).toBe('green');
+    expect(decideIcon('https://www.anaf.ro/foo?bar=baz', ROSTER)).toBe("verified");
   });
 
   it('returns green for a deep subdomain (spv.anaf.ro)', () => {
-    expect(decideIcon('https://spv.anaf.ro/inbox', ROSTER)).toBe('green');
+    expect(decideIcon('https://spv.anaf.ro/inbox', ROSTER)).toBe("verified");
   });
 
   it('returns green regardless of URL scheme casing or path content', () => {
-    expect(decideIcon('HTTPS://ANAF.RO/page#frag', ROSTER)).toBe('green');
+    expect(decideIcon('HTTPS://ANAF.RO/page#frag', ROSTER)).toBe("verified");
   });
 });
 
 describe('decideIcon() — lookalike path', () => {
   it('returns red for a suffix-attack lookalike (anaf-portal.ro)', () => {
-    expect(decideIcon('https://anaf-portal.ro/', ROSTER)).toBe('red');
+    expect(decideIcon('https://anaf-portal.ro/', ROSTER)).toBe("lookalike");
   });
 
   it('returns red for a TLD swap (anaf.com)', () => {
-    expect(decideIcon('https://anaf.com/', ROSTER)).toBe('red');
+    expect(decideIcon('https://anaf.com/', ROSTER)).toBe("lookalike");
   });
 
   it('returns red for a Cyrillic homograph (\u0430naf.ro)', () => {
     // \u0430 is Cyrillic small letter a — visually identical to ASCII 'a'.
-    expect(decideIcon('https://\u0430naf.ro/', ROSTER)).toBe('red');
+    expect(decideIcon('https://\u0430naf.ro/', ROSTER)).toBe("lookalike");
   });
 });
 
 describe('decideIcon() — unknown path', () => {
   it('returns gray for a fully off-list domain', () => {
-    expect(decideIcon('https://google.com/', ROSTER)).toBe('gray');
+    expect(decideIcon('https://google.com/', ROSTER)).toBe("unknown");
   });
 
   it('returns gray for example.com', () => {
-    expect(decideIcon('https://example.com/page', ROSTER)).toBe('gray');
+    expect(decideIcon('https://example.com/page', ROSTER)).toBe("unknown");
   });
 });
 
 describe('decideIcon() — defensive behaviour on malformed input', () => {
   it('returns gray for an empty URL string (does not throw)', () => {
     expect(() => decideIcon('', ROSTER)).not.toThrow();
-    expect(decideIcon('', ROSTER)).toBe('gray');
+    expect(decideIcon('', ROSTER)).toBe("unknown");
   });
 
   it('returns gray for a garbage URL string', () => {
-    expect(decideIcon('not a url', ROSTER)).toBe('gray');
+    expect(decideIcon('not a url', ROSTER)).toBe("unknown");
   });
 
   it('returns gray for about:blank (no hostname)', () => {
-    expect(decideIcon('about:blank', ROSTER)).toBe('gray');
+    expect(decideIcon('about:blank', ROSTER)).toBe("unknown");
   });
 
   it('returns gray for chrome://newtab (no public hostname)', () => {
-    expect(decideIcon('chrome://newtab/', ROSTER)).toBe('gray');
+    expect(decideIcon('chrome://newtab/', ROSTER)).toBe("unknown");
   });
 
   it('returns gray for a javascript: URL', () => {
-    expect(decideIcon('javascript:void(0)', ROSTER)).toBe('gray');
+    expect(decideIcon('javascript:void(0)', ROSTER)).toBe("unknown");
   });
 
   it('returns gray for a file:// URL with no host', () => {
-    expect(decideIcon('file:///etc/hosts', ROSTER)).toBe('gray');
+    expect(decideIcon('file:///etc/hosts', ROSTER)).toBe("unknown");
   });
 
   it('returns gray for a data: URL', () => {
-    expect(decideIcon('data:text/plain,hello', ROSTER)).toBe('gray');
+    expect(decideIcon('data:text/plain,hello', ROSTER)).toBe("unknown");
   });
 });
 
 describe('decideIcon() — empty roster', () => {
   it('returns gray for any URL when the roster has no domains', () => {
-    expect(decideIcon('https://anaf.ro/', EMPTY)).toBe('gray');
-    expect(decideIcon('https://google.com/', EMPTY)).toBe('gray');
-    expect(decideIcon('https://anaf-portal.ro/', EMPTY)).toBe('gray');
+    expect(decideIcon('https://anaf.ro/', EMPTY)).toBe("unknown");
+    expect(decideIcon('https://google.com/', EMPTY)).toBe("unknown");
+    expect(decideIcon('https://anaf-portal.ro/', EMPTY)).toBe("unknown");
   });
 });
 
-describe('iconPath()', () => {
-  it('produces the canonical 16/32/48 path map for green', () => {
-    expect(iconPath('green')).toEqual({
-      16: 'icons/green-16.png',
-      32: 'icons/green-32.png',
-      48: 'icons/green-48.png',
-    });
+describe('iconPath() — deprecated shim', () => {
+  // v0.1.1: iconPath is no longer used by the SW (badge replaces icon swap).
+  // The shim returns the canonical neutral brand path for any state.
+  it('always returns the neutral onegov brand path triple', () => {
+    const expected = {
+      16: 'icons/onegov-16.png',
+      32: 'icons/onegov-32.png',
+      48: 'icons/onegov-48.png',
+    };
+    expect(iconPath('green')).toEqual(expected);
+    expect(iconPath('gray')).toEqual(expected);
+    expect(iconPath('red')).toEqual(expected);
+    expect(iconPath()).toEqual(expected);
   });
+});
 
-  it('produces the canonical map for gray', () => {
-    expect(iconPath('gray')).toEqual({
-      16: 'icons/gray-16.png',
-      32: 'icons/gray-32.png',
-      48: 'icons/gray-48.png',
-    });
+describe('decideTabState()', () => {
+  it('aliases decideIcon (verified)', () => {
+    expect(decideTabState('https://anaf.ro/', ROSTER)).toBe('verified');
   });
-
-  it('produces the canonical map for red', () => {
-    expect(iconPath('red')).toEqual({
-      16: 'icons/red-16.png',
-      32: 'icons/red-32.png',
-      48: 'icons/red-48.png',
-    });
+  it('aliases decideIcon (lookalike)', () => {
+    expect(decideTabState('https://anaf-portal.ro/', ROSTER)).toBe('lookalike');
+  });
+  it('aliases decideIcon (unknown)', () => {
+    expect(decideTabState('https://google.com/', ROSTER)).toBe('unknown');
   });
 });
 
 describe('badgeStyle()', () => {
   it('shows a green check for verified', () => {
-    const b = badgeStyle('green');
+    const b = badgeStyle('verified');
     expect(b.text).toBe('\u2713');
     expect(b.backgroundColor).toBe('#0F8A4F');
   });
 
   it('shows a loud red exclamation for lookalike', () => {
-    const b = badgeStyle('red');
+    const b = badgeStyle('lookalike');
     expect(b.text).toBe('!');
     expect(b.backgroundColor).toBe('#C62828');
   });
 
   it('shows no badge text on unknown (keeps the toolbar clean)', () => {
-    const b = badgeStyle('gray');
+    const b = badgeStyle('unknown');
     expect(b.text).toBe('');
   });
 });

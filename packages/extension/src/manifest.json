@@ -36,15 +36,15 @@
     "default_popup": "popup.html",
     "default_title": "onegov.ro",
     "default_icon": {
-      "16": "icons/gray-16.png",
-      "32": "icons/gray-32.png",
-      "48": "icons/gray-48.png"
+      "16": "icons/onegov-16.png",
+      "32": "icons/onegov-32.png",
+      "48": "icons/onegov-48.png"
     }
   },
   "icons": {
-    "16": "icons/green-16.png",
-    "48": "icons/green-48.png",
-    "128": "icons/green-128.png"
+    "16": "icons/onegov-16.png",
+    "48": "icons/onegov-48.png",
+    "128": "icons/onegov-128.png"
   },
   "web_accessible_resources": [
     {

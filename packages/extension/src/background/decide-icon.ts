@@ -1,18 +1,25 @@
 /**
  * Pure decision function: a URL string + the bundled verified-domain roster
- * collapse to one of three icon colours. Lives outside the service-worker
+ * collapse to one of three per-tab states. Lives outside the service-worker
  * `chrome.*` glue so it can be unit-tested in plain bun:test without mocking
  * the entire WebExtension API surface.
+ *
+ * v0.1.1 simplification: the per-tab state used to drive both an icon-color
+ * swap (3 PNG variants) AND a toolbar badge. The owner observed that the
+ * badge alone carries enough signal — `✓` green for verified, `!` red for
+ * lookalike, blank for unknown — so the icon was reduced to a single neutral
+ * brand mark. This file is kept (instead of renamed) to preserve the import
+ * path other modules and tests already use; the name `decide-icon` is now a
+ * misnomer in spirit (it decides the BADGE, not the icon) but renaming would
+ * churn 6 import sites for cosmetic gain.
  *
  * Decision flow:
  *   1. Parse the URL via the WHATWG `URL` constructor. Anything `URL` rejects
  *      (about:blank, chrome:// pages, malformed strings, javascript: URLs)
- *      collapses to `gray` — the icon stays neutral on browser-internal pages
- *      and we never throw out of a `webNavigation.onCommitted` callback.
+ *      collapses to `unknown` — no badge on browser-internal pages.
  *   2. Hand the hostname to `verifyDomain`. The verifier itself is total and
  *      never throws — see `packages/core/src/domain-verifier.ts`.
- *   3. Map the resulting `DomainStatus.kind` onto the colour name the caller
- *      will splice into the icon path.
+ *   3. Map the resulting `DomainStatus.kind` onto the badge style.
  *
  * Hard constraint: this module imports nothing from `chrome.*`. The whole
  * point of extracting it is keeping the SW thin and the decision testable.
@@ -28,61 +35,43 @@
 import { verifyDomain } from '../../../core/src/domain-verifier.js';
 import type { VerifiedDomainList } from '@onegov/core';
 
-/**
- * The three icon variants shipped under `packages/extension/icons/`.
- * Maps 1:1 to file name prefixes (`green-16.png`, `gray-32.png`, …).
- */
-export type IconColor = 'green' | 'gray' | 'red';
+/** The classified state for a single tab — mirrors `DomainStatus['kind']`. */
+export type TabState = 'verified' | 'lookalike' | 'unknown';
 
 /**
- * Decide which icon variant should represent a given page URL against the
- * bundled verified-domain roster.
- *
- * Returns `gray` for any input the URL parser rejects so the SW can call this
- * unconditionally on every navigation event without defensive try/catch.
+ * Decide the badge state for a given page URL against the bundled
+ * verified-domain roster. Returns `unknown` for any input the URL parser
+ * rejects so the SW can call this unconditionally on every navigation event
+ * without defensive try/catch.
  */
-export function decideIcon(url: string, list: VerifiedDomainList): IconColor {
+export function decideTabState(url: string, list: VerifiedDomainList): TabState {
   let hostname: string;
   try {
     hostname = new URL(url).hostname;
   } catch {
-    return 'gray';
+    return 'unknown';
   }
-  if (hostname.length === 0) return 'gray';
+  if (hostname.length === 0) return 'unknown';
 
   const status = verifyDomain(hostname, list);
   switch (status.kind) {
     case 'verified':
-      return 'green';
+      return 'verified';
     case 'lookalike':
-      return 'red';
+      return 'lookalike';
     case 'unknown':
-      return 'gray';
+      return 'unknown';
   }
 }
 
 /**
- * Build the `path` map `chrome.action.setIcon` expects for a given colour.
- * Pulled into its own helper so the SW glue is one function call wide and
- * the path string never appears twice (any future icon-size change only
- * touches this single source of truth).
- */
-export function iconPath(color: IconColor): Record<number, string> {
-  return {
-    16: `icons/${color}-16.png`,
-    32: `icons/${color}-32.png`,
-    48: `icons/${color}-48.png`,
-  };
-}
-
-/**
  * Visual badge overlaid on the toolbar icon by `chrome.action.setBadgeText`
- * + `setBadgeBackgroundColor`. Reinforces the icon colour with a glyph that's
- * legible at toolbar zoom levels and impossible to miss for the lookalike
- * (red) state where attention matters most.
+ * + `setBadgeBackgroundColor`. Reinforces the verified/lookalike/unknown
+ * state with a glyph that's legible at toolbar zoom levels and impossible
+ * to miss for the lookalike state where attention matters most.
  *
- *   verified  → "✓"  on the green token (--onegov-color-success-ish)
- *   lookalike → "!"  on the red token (alarm)
+ *   verified  → "✓"  on accessible green  (--onegov-color-success-ish)
+ *   lookalike → "!"  on accessible red    (alarm)
  *   unknown   → ""   (no badge — keeps the toolbar clean on off-list sites)
  *
  * Chrome MV3 `setBadgeText` allows up to 4 chars; we ship a single glyph so
@@ -100,13 +89,42 @@ const BADGE_VERIFIED: BadgeStyle = { text: '\u2713', backgroundColor: '#0F8A4F' 
 const BADGE_LOOKALIKE: BadgeStyle = { text: '!', backgroundColor: '#C62828' };
 const BADGE_NONE: BadgeStyle = { text: '', backgroundColor: '#000000' };
 
-export function badgeStyle(color: IconColor): BadgeStyle {
-  switch (color) {
-    case 'green':
+export function badgeStyle(state: TabState): BadgeStyle {
+  switch (state) {
+    case 'verified':
       return BADGE_VERIFIED;
-    case 'red':
+    case 'lookalike':
       return BADGE_LOOKALIKE;
-    case 'gray':
+    case 'unknown':
       return BADGE_NONE;
   }
+}
+
+// ─── Backwards-compatibility shims ───────────────────────────────────────
+// Other code (and tests) used `IconColor` + `decideIcon` + `iconPath` from
+// the v0.1 era when the SW swapped the toolbar icon. We keep these as
+// thin shims so existing imports compile, but they no longer drive any
+// runtime icon swap — the SW simply doesn't call `chrome.action.setIcon`
+// anymore. `iconPath` returns the canonical brand path triple so any
+// caller that did call setIcon gets the neutral mark.
+
+export type IconColor = TabState;
+
+/** @deprecated use {@link decideTabState}. Returns the same value. */
+export function decideIcon(url: string, list: VerifiedDomainList): IconColor {
+  return decideTabState(url, list);
+}
+
+/**
+ * @deprecated The SW no longer swaps the icon per-tab; the manifest's
+ * default brand icon is the only one shown. This returns the canonical
+ * brand path triple so any legacy caller that does invoke `setIcon`
+ * still paints the correct (neutral) mark.
+ */
+export function iconPath(_state?: IconColor): Record<number, string> {
+  return {
+    16: 'icons/onegov-16.png',
+    32: 'icons/onegov-32.png',
+    48: 'icons/onegov-48.png',
+  };
 }

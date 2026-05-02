@@ -26,8 +26,10 @@ import { dirname, resolve } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const iconsDir = resolve(here, '../../icons');
 
-const STATES = ['green', 'gray', 'red'] as const;
+// v0.1.1 simplification: one neutral brand icon per size (was 3 state variants).
+// Per-tab state signal moved to the toolbar badge — see decide-icon.ts.
 const SIZES = [16, 32, 48, 128] as const;
+const ICON_BASENAME = 'onegov';
 const MAX_BYTES = 5 * 1024;
 
 /** PNG file signature (magic number). All valid PNGs start with these 8
@@ -50,39 +52,35 @@ function readPngDims(buf: Buffer): { width: number; height: number } {
 }
 
 describe('generated brand icons', () => {
-  for (const state of STATES) {
-    for (const size of SIZES) {
-      const filename = `${state}-${size}.png`;
-      const path = resolve(iconsDir, filename);
+  for (const size of SIZES) {
+    const filename = `${ICON_BASENAME}-${size}.png`;
+    const path = resolve(iconsDir, filename);
 
-      it(`${filename} exists`, () => {
-        expect(existsSync(path)).toBe(true);
-      });
+    it(`${filename} exists`, () => {
+      expect(existsSync(path)).toBe(true);
+    });
 
-      it(`${filename} is under the 5 KB budget`, () => {
-        const bytes = statSync(path).size;
-        expect(bytes).toBeLessThanOrEqual(MAX_BYTES);
-        expect(bytes).toBeGreaterThan(0);
-      });
+    it(`${filename} is under the 5 KB budget`, () => {
+      const bytes = statSync(path).size;
+      expect(bytes).toBeLessThanOrEqual(MAX_BYTES);
+      expect(bytes).toBeGreaterThan(0);
+    });
 
-      it(`${filename} is a valid square PNG of the expected size`, () => {
-        const buf = readFileSync(path);
-        const { width, height } = readPngDims(buf);
-        expect(width).toBe(size);
-        expect(height).toBe(size);
-      });
-    }
+    it(`${filename} is a valid square PNG of the expected size`, () => {
+      const buf = readFileSync(path);
+      const { width, height } = readPngDims(buf);
+      expect(width).toBe(size);
+      expect(height).toBe(size);
+    });
   }
 
-  it('total PNG payload is reasonable (< 50 KB combined)', () => {
+  it('total PNG payload is reasonable (< 20 KB combined)', () => {
     let total = 0;
-    for (const state of STATES) {
-      for (const size of SIZES) {
-        total += statSync(resolve(iconsDir, `${state}-${size}.png`)).size;
-      }
+    for (const size of SIZES) {
+      total += statSync(resolve(iconsDir, `${ICON_BASENAME}-${size}.png`)).size;
     }
-    // Hard ceiling well above current ~16 KB — guards against accidental
+    // Hard ceiling well above current ~4 KB — guards against accidental
     // bloat (e.g. someone embeds a raster and resvg passes it through).
-    expect(total).toBeLessThan(50 * 1024);
+    expect(total).toBeLessThan(20 * 1024);
   });
 });

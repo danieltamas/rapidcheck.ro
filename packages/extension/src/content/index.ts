@@ -210,7 +210,12 @@ function applyOverlayStyles(host: HTMLDivElement): void {
   // so a flicker between persona switches doesn't bleed through.
   s.setProperty('background', '#ffffff', 'important');
   s.setProperty('color-scheme', 'light', 'important');
-  s.setProperty('overflow', 'hidden', 'important');
+  // Scrolling: the host owns the viewport, so it must be scrollable on the
+  // y-axis (the page's <html>/<body> are scroll-locked while we're up).
+  // x-axis stays hidden — overlay content is fixed-width and we don't want
+  // horizontal scrollbars under any circumstance.
+  s.setProperty('overflow-x', 'hidden', 'important');
+  s.setProperty('overflow-y', 'auto', 'important');
   s.setProperty('display', 'block', 'important');
 }
 
