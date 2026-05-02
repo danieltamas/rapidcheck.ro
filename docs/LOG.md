@@ -110,3 +110,28 @@ Follow-ups filed for the orchestrator:
 **Post-merge gate on `main`:** all green — `bun run check` exit 0, `bun test` 113/113, `bun run validate-packs` 7 files OK, `bun run build` clean (popup.js.gz still 5.24 KB), 0 node-forge.
 
 **Cleanup:** deleted task branch + stale alias branch + worktree.
+
+---
+
+## 2026-05-02 — Track 3 (UI components) — merged with one orchestrator near-miss
+
+**Squash commit:** `0988231`
+**Source branch:** `job/v0.1-foundation/ui-components` (5 worker commits)
+**Reviewer verdict:** PASS, 0 blockers, 0 warnings, 3 suggestions
+
+**Delivered:**
+- 8 atomic Preact components (Heading, Paragraph, List, Table, Form, Link, Card, Button) — all persona-aware
+- 4 persona variants (pensioner, standard, pro, journalist) + shared scaffolding
+- Theme tokens (PANTONE 280C blue + identitate.gov.ro fonts) as both `theme.css` (Vite library) and `theme.ts` (inline-string twin for closed-shadow injection)
+- `renderer.tsx`: `render(tree, persona, ShadowRoot): void` — idempotent (verified 5x re-render = 1 style tag, 1 mount node)
+- Visual harness (`packages/ui/test-harness.html` + `scripts/build-harness.ts`) verified by reviewer in headless Chromium via Playwright
+- 84 new tests (197 total: 113 core + 84 UI). 22/22 sanitizeHref security tests pass — `Link.tsx` rejects `javascript:`, `JAVASCRIPT:`, `jaVaScrIpt:`, `data:`, `vbscript:`, `file:`, `chrome-extension:`, `ftp:`, `//evil.com`, `javascript:%2F%2F` (URL-encoded), leading-whitespace forms, empty/whitespace
+- `Form.tsx` invariant: explicit test `expect(form.onsubmit ?? null).toBeNull()` — read-only, no submission
+
+**Justified out-of-scope expansion:** worker touched root `package.json` (split `test` into `test:core` + `test:ui`) and root `tsconfig.json` (added Preact JSX import source). Rationale: `happy-dom`'s GlobalRegistrator pollutes `globalThis`, breaking `@onegov/core`'s `no-DOM` invariant test if both run in one Bun process. Reviewer verified the rationale.
+
+**Bundle:** `popup.js` still 14.52 kB raw / **5.24 kB gzipped** (Track 4b has 56 kB headroom under the 60 kB cap).
+
+**Process incident — orchestrator CWD drift:** during the merge sequence, the orchestrator's bash session CWD had drifted into the Track 3 reviewer's worktree (after a `cd .claude/worktrees/<id>` for status checks without `cd` back). The first `git merge --squash` then silently applied to the reviewer's `ui-components-rebase-test` branch instead of `main`. No data lost (no push, no commit-to-main with stray content), but the merge had to be redone after `cd /Users/danime/Sites/onegov.ro`. Memory entry filed: `feedback_orchestrator_cwd_hygiene.md`. Going forward: use `git -C <abs-path>` or always `cd` back to main before `git merge`/`commit`.
+
+**Cleanup:** deleted task branch, stray rebase-test branch, both worktrees + alias branches.
