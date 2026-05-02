@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+out
+.cache
+.vite
+packages/*/dist
+packages/*/build
+graphify-out
+*.min.js

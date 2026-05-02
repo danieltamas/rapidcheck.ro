@@ -1,0 +1,26 @@
+/* Popup base styles. Track 4 expands these for the persona picker, status pill,
+   and "afișează site-ul original" toggle. Adopts identitate.gov.ro tokens. */
+
+:root {
+  --onegov-color-primary: #003b73; /* PANTONE 280C blue, identitate.gov.ro */
+  --onegov-color-bg: #ffffff;
+  --onegov-color-text: #1a1a1a;
+  --onegov-font-base: Arial, Calibri, Verdana, Tahoma, Trebuchet, Ubuntu, sans-serif;
+  --onegov-font-size-base: 14px;
+  --onegov-spacing: 8px;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 320px;
+  font-family: var(--onegov-font-base);
+  font-size: var(--onegov-font-size-base);
+  color: var(--onegov-color-text);
+  background: var(--onegov-color-bg);
+}
+
+#app {
+  padding: var(--onegov-spacing);
+}

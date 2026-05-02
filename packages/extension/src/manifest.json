@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "onegov.ro",
+  "version": "0.1.0",
+  "description": "UX layer over Romanian government portals. Read-only, privacy-first, no network requests.",
+  "permissions": ["storage", "scripting", "activeTab", "webNavigation"],
+  "host_permissions": [
+    "*://*.anaf.ro/*",
+    "*://dgep.mai.gov.ro/*",
+    "*://*.depabd.mai.gov.ro/*",
+    "*://portal.just.ro/*",
+    "*://*.ghiseul.ro/*",
+    "*://*.rotld.ro/*",
+    "*://itmcluj.ro/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.anaf.ro/*",
+        "*://dgep.mai.gov.ro/*",
+        "*://*.depabd.mai.gov.ro/*",
+        "*://portal.just.ro/*",
+        "*://*.ghiseul.ro/*",
+        "*://*.rotld.ro/*",
+        "*://itmcluj.ro/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "onegov.ro",
+    "default_icon": {
+      "16": "icons/gray-16.png",
+      "32": "icons/gray-32.png",
+      "48": "icons/gray-48.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["rule-packs/*.json"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

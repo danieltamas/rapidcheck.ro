@@ -1,0 +1,35 @@
+{
+  "name": "onegov.ro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Manifest V3 WebExtension that overlays a unified persona-adapted UI on Romanian government portals.",
+  "license": "MIT",
+  "author": "Daniel Tamas <hello@danieltamas.ro>",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "check": "tsc --build packages/core packages/ui packages/extension",
+    "build": "bun run scripts/build-extension.ts",
+    "dev": "ONEGOV_TARGET=popup vite build --watch --config packages/extension/vite.config.ts",
+    "validate-packs": "bun run scripts/validate-packs.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint packages scripts",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "@typescript-eslint/parser": "^8.8.0",
+    "eslint": "^9.12.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8"
+  },
+  "engines": {
+    "bun": ">=1.2.0",
+    "node": ">=24.0.0"
+  }
+}
