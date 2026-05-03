@@ -328,6 +328,13 @@ async function activate(mod: SiteModule): Promise<void> {
   }
 
   const settings = await readSettings();
+  // showOriginal is a TRANSIENT per-tab toggle (peek at original) — never
+  // persist it across page navigations. If the previous session left it
+  // true in storage, clear it now so this page boots into the overlay.
+  if (settings.showOriginal) {
+    void chrome.storage.local.set({ showOriginal: false }).catch(() => {});
+    settings.showOriginal = false;
+  }
 
   // Mount shadow host (still hidden if user has overlay off). Awaits
   // document.body because we ran at document_start before body was parsed.

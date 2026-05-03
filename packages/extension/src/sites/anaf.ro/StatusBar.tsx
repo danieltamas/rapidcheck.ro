@@ -43,14 +43,25 @@ export function StatusBar({ runtime }: Props) {
           </Inline>
           <Cluster gap="sm" class="anaf-statusbar__actions">
             <DensityChip current={runtime.density} onPick={runtime.setDensity} />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={runtime.showOriginal}
-              aria-label="Afișează site-ul original anaf.ro"
-            >
-              afișează site original
-            </Button>
+            {runtime.showingOriginal ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={runtime.hideOriginal}
+                aria-label="Activează din nou interfața onegov"
+              >
+                Activează interfața
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={runtime.showOriginal}
+                aria-label="Afișează site-ul original anaf.ro"
+              >
+                Site original
+              </Button>
+            )}
           </Cluster>
         </Cluster>
       </div>
