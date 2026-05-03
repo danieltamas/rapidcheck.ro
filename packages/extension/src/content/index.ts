@@ -153,13 +153,46 @@ function applyOverlayStyles(host: HTMLDivElement): void {
   s.setProperty('display', 'block', 'important');
 }
 
-/** Mount the closed shadow host. */
-function mountShadowHost(): { host: HTMLDivElement; shadow: ShadowRoot } {
+/**
+ * Resolve once `document.body` exists. At `document_start` (the v0.2 anaf
+ * lifecycle entry point) the body hasn't been parsed yet, so direct
+ * `document.body.appendChild(host)` throws "Cannot read properties of null".
+ * MutationObserver on documentElement is the canonical wait pattern; we add
+ * a `readystatechange` fallback for browsers that don't deliver the
+ * mutation in time.
+ */
+function waitForBody(): Promise<HTMLBodyElement> {
+  if (document.body) return Promise.resolve(document.body);
+  return new Promise<HTMLBodyElement>((resolve) => {
+    const settle = (): boolean => {
+      if (document.body) {
+        observer.disconnect();
+        document.removeEventListener('readystatechange', onState);
+        resolve(document.body);
+        return true;
+      }
+      return false;
+    };
+    const observer = new MutationObserver(() => {
+      settle();
+    });
+    const onState = (): void => {
+      settle();
+    };
+    observer.observe(document.documentElement, { childList: true });
+    document.addEventListener('readystatechange', onState);
+  });
+}
+
+/** Mount the closed shadow host. Awaits `document.body` because we may have
+ *  been called at `document_start`, before the body is parsed. */
+async function mountShadowHost(): Promise<{ host: HTMLDivElement; shadow: ShadowRoot }> {
+  const body = await waitForBody();
   const host = document.createElement('div');
   host.id = HOST_ID;
   host.dataset['onegov'] = '1';
   applyOverlayStyles(host);
-  document.body.appendChild(host);
+  body.appendChild(host);
   const shadow = host.attachShadow({ mode: 'closed' });
   return { host, shadow };
 }
@@ -249,8 +282,13 @@ async function activate(mod: SiteModule): Promise<void> {
   const settings = await readSettings();
   const initiallyHidden = !settings.enabled || settings.showOriginal;
 
-  // Mount shadow host (still hidden if user has overlay off).
-  const { host, shadow } = mountShadowHost();
+  // Mount shadow host (still hidden if user has overlay off). Awaits
+  // document.body because we ran at document_start before body was parsed.
+  // eslint-disable-next-line no-console
+  console.info('[onegov] waiting for document.body...');
+  const { host, shadow } = await mountShadowHost();
+  // eslint-disable-next-line no-console
+  console.info('[onegov] shadow host mounted, attaching styles + Preact');
 
   // Theme tokens + module CSS so the first paint inside the shadow root
   // has them.
