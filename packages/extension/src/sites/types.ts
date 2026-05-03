@@ -7,6 +7,7 @@
  */
 
 import type { ComponentType, VNode } from 'preact';
+import type { MountMark } from '../loader/index.js';
 
 /**
  * UI density preference. Replaces the v0.1 persona picker.
@@ -60,6 +61,15 @@ export interface SiteModule<Ctx = unknown> {
    * never replaces) any token-driven primitive style.
    */
   readonly css?: string;
+  /**
+   * Branding for the loading splash. The institution's mark is the headline
+   * (the user came for ANAF, not for us); onegov defers to a small
+   * "Optimizat de" byline. Required so the loader doesn't show the wrong
+   * brand at all.
+   */
+  readonly loaderMark: MountMark;
+  /** Optional subtitle line under the institution mark on the splash. */
+  readonly loaderSubtitle?: string;
 }
 
 /**

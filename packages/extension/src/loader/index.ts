@@ -40,9 +40,9 @@ const LOADER_ID = 'onegov-loader';
 const HOST_ID = 'onegov-root';
 
 /** Safety: never leave the user staring at the splash. */
-const SAFETY_TIMEOUT_MS = 3000;
+const SAFETY_TIMEOUT_MS = 1500;
 /** Show the "Pregătim interfața..." hint after this delay. */
-const HINT_DELAY_MS = 300;
+const HINT_DELAY_MS = 250;
 /** Cross-fade duration on dismiss. */
 const FADE_MS = 120;
 
@@ -80,18 +80,26 @@ const LOADER_CSS = [
   `flex-direction:column;align-items:center;justify-content:center;gap:24px;`,
   `background:#ffffff;color:#1a498f;font:14px/1.4 Arial,Calibri,Verdana,Tahoma,Trebuchet MS,Ubuntu,sans-serif;`,
   `transition:opacity ${String(FADE_MS)}ms ease-out;will-change:opacity}`,
-  // Logo: subtle breathing animation (1.8s, 0.92→1.0).
-  `#${LOADER_ID} .l-logo{width:200px;height:auto;animation:onegov-breathe 1.8s ease-in-out infinite}`,
-  `#${LOADER_ID} .l-logo svg{display:block;width:100%;height:auto}`,
+  // Institution mark — large, the headline of the splash. Either an SVG
+  // string or text label rendered in the institution's color.
+  `#${LOADER_ID} .l-mark{display:flex;align-items:center;justify-content:center;`,
+  `min-height:96px;animation:onegov-breathe 1.8s ease-in-out infinite}`,
+  `#${LOADER_ID} .l-mark svg{display:block;max-width:280px;height:auto}`,
+  `#${LOADER_ID} .l-mark img{display:block;max-width:280px;max-height:96px;height:auto}`,
+  `#${LOADER_ID} .l-mark--text{font-size:48px;font-weight:800;letter-spacing:-0.02em;color:var(--l-color,#1a498f)}`,
+  // Byline: "Optimizat de [onegov logo]"
+  `#${LOADER_ID} .l-byline{display:flex;align-items:center;gap:8px;`,
+  `font-size:11px;color:#8a96a3;letter-spacing:0.04em;text-transform:uppercase}`,
+  `#${LOADER_ID} .l-byline svg{display:block;height:14px;width:auto}`,
   // Hint text — hidden by default, fades in via .l-hint--visible.
   `#${LOADER_ID} .l-hint{opacity:0;transition:opacity 180ms ease-out;color:#5b6b7d;font-size:13px;letter-spacing:0.01em}`,
   `#${LOADER_ID} .l-hint--visible{opacity:1}`,
-  // Spinner-less; the breathing logo IS the activity indicator.
+  // Spinner-less; the breathing mark IS the activity indicator.
   // Reduced motion: kill animations + transitions, keep the visual.
   `@keyframes onegov-breathe{0%,100%{opacity:.92;transform:scale(.98)}50%{opacity:1;transform:scale(1)}}`,
   `@media (prefers-reduced-motion:reduce){`,
   `#${LOADER_ID}{transition:none}`,
-  `#${LOADER_ID} .l-logo{animation:none}`,
+  `#${LOADER_ID} .l-mark{animation:none}`,
   `#${LOADER_ID} .l-hint{transition:none}`,
   `}`,
 ].join('');
@@ -112,6 +120,38 @@ export interface LoaderHandle {
 }
 
 /**
+ * Per-site branding for the splash. The institution's mark is the headline;
+ * onegov is reduced to a small "Optimizat de" byline. Owner directive: do
+ * NOT show the onegov logo as the dominant element on a splash for ANAF /
+ * any other gov site — the user came for the institution, not for us.
+ */
+export interface MountOptions {
+  /**
+   * Institution mark to render at the top of the splash. Either:
+   *   - `{ kind: 'svg', svg: '<svg ...>...' }` — an inline SVG string
+   *   - `{ kind: 'img', src: 'https://...' }` — an image URL (will be loaded;
+   *     consider preloading via the page's own assets to avoid a flash)
+   *   - `{ kind: 'text', label: 'ANAF', color?: '#003B73' }` — text mark in
+   *     the institution color (fallback when no logo asset is available)
+   */
+  mark: MountMark;
+  /** Optional one-line italics under the byline, e.g. "Inspecția Muncii". */
+  subtitle?: string;
+  /** Optional override for the loading hint (default "Pregătim interfața..."). */
+  hint?: string;
+}
+
+export type MountMark =
+  | { kind: 'svg'; svg: string }
+  | { kind: 'img'; src: string; alt?: string }
+  | { kind: 'text'; label: string; color?: string };
+
+/** Default options when no per-site config is supplied. */
+const DEFAULT_OPTIONS: MountOptions = {
+  mark: { kind: 'text', label: 'onegov', color: '#1a498f' },
+};
+
+/**
  * Mount the splash and append the hide-original style to `<body>`.
  *
  * Idempotent: if a loader (or hide-style) already exists with the known ids,
@@ -121,13 +161,18 @@ export interface LoaderHandle {
  * Performance: under 5ms in practice — three `createElement`s, two CSS string
  * writes, one DOM mutation per element. No layout-thrashing reads.
  */
-export function mountLoader(): LoaderHandle {
+export function mountLoader(options: MountOptions = DEFAULT_OPTIONS): LoaderHandle {
+  // eslint-disable-next-line no-console
+  console.info('[onegov:loader] mount called for', options.mark.kind === 'text' ? options.mark.label : options.mark.kind);
+
   const doc = document;
   const body = doc.body || doc.documentElement;
   if (!body) {
     // No body yet (extremely early — happy-dom edge case). Fall back to a
     // no-op handle so the caller never crashes; the safety timeout will not
     // fire because we never installed it.
+    // eslint-disable-next-line no-console
+    console.warn('[onegov:loader] no body — returning noop handle (page may not be ready)');
     return makeNoopHandle();
   }
 
@@ -146,18 +191,48 @@ export function mountLoader(): LoaderHandle {
     loaderEl.id = LOADER_ID;
     loaderEl.setAttribute('role', 'status');
     loaderEl.setAttribute('aria-live', 'polite');
-    loaderEl.setAttribute('aria-label', 'Se încarcă onegov');
+    loaderEl.setAttribute(
+      'aria-label',
+      options.mark.kind === 'text' ? `Se încarcă ${options.mark.label}` : 'Se încarcă',
+    );
 
-    const logo = doc.createElement('div');
-    logo.className = 'l-logo';
-    // Single, controlled innerHTML write — value is the literal LOGO_SVG
-    // baked at build time. No attacker-influenced data ever flows here.
-    logo.innerHTML = LOGO_SVG;
-    loaderEl.appendChild(logo);
+    // Institution mark (the headline of the splash).
+    const mark = doc.createElement('div');
+    mark.className = 'l-mark';
+    if (options.mark.kind === 'svg') {
+      // Single controlled innerHTML write — value comes from the bundled
+      // site module's literal SVG string, not from page data.
+      mark.innerHTML = options.mark.svg;
+    } else if (options.mark.kind === 'img') {
+      const img = doc.createElement('img');
+      img.src = options.mark.src;
+      img.alt = options.mark.alt ?? '';
+      mark.appendChild(img);
+    } else {
+      mark.classList.add('l-mark--text');
+      mark.textContent = options.mark.label;
+      if (options.mark.color) {
+        mark.style.setProperty('--l-color', options.mark.color);
+      }
+    }
+    loaderEl.appendChild(mark);
 
+    // Byline: small "Optimizat de [onegov logo]" — institution stays the
+    // hero, onegov defers to a quiet credit.
+    const byline = doc.createElement('div');
+    byline.className = 'l-byline';
+    const credit = doc.createElement('span');
+    credit.textContent = 'Optimizat de';
+    byline.appendChild(credit);
+    const onegov = doc.createElement('span');
+    onegov.innerHTML = LOGO_SVG;
+    byline.appendChild(onegov);
+    loaderEl.appendChild(byline);
+
+    // Hint text — only revealed if the load drags past HINT_DELAY_MS.
     const hint = doc.createElement('div');
     hint.className = 'l-hint';
-    hint.textContent = 'Pregătim interfața...';
+    hint.textContent = options.hint ?? 'Pregătim interfața...';
     loaderEl.appendChild(hint);
 
     body.appendChild(loaderEl);
@@ -209,6 +284,8 @@ export function mountLoader(): LoaderHandle {
 
   function dismiss(): void {
     if (disposed) return;
+    // eslint-disable-next-line no-console
+    console.info('[onegov:loader] dismiss');
     disposed = true;
     clearTimers();
     if (!loaderEl) return;
@@ -224,8 +301,10 @@ export function mountLoader(): LoaderHandle {
     setTimeout(removeLoaderEl, FADE_MS);
   }
 
-  function abort(_reason?: string): void {
+  function abort(reason?: string): void {
     if (disposed) return;
+    // eslint-disable-next-line no-console
+    console.warn('[onegov:loader] abort:', reason ?? '(no reason)');
     disposed = true;
     clearTimers();
     removeLoaderEl();

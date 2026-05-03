@@ -22,6 +22,13 @@ export const anafModule: SiteModule<AnafContext> = {
   extractContext,
   App,
   css: ANAF_CSS,
+  // Splash branding: ANAF as the headline (institution color #003B73 from
+  // identitate.gov.ro). When/if a real ANAF SVG asset is added to the
+  // bundle, swap to `{ kind: 'svg', svg: '...' }`. Owner directive: never
+  // show the onegov logo as the dominant element on a gov-site splash —
+  // the user came for ANAF, not us. We're a quiet "Optimizat de" byline.
+  loaderMark: { kind: 'text', label: 'ANAF', color: '#003B73' },
+  loaderSubtitle: 'Agenția Națională de Administrare Fiscală',
 };
 
 // Re-exports so other modules (and tests) can pick what they need without

@@ -226,16 +226,23 @@ async function injectStyles(shadow: ShadowRoot, moduleCss?: string): Promise<voi
  */
 async function activate(mod: SiteModule): Promise<void> {
   const t0 = performance.now();
-  const loader = mountLoader();
+  // eslint-disable-next-line no-console
+  console.info('[onegov] activate() entered for', mod.domain, 'at t0');
+  const loader = mountLoader({
+    mark: mod.loaderMark,
+    subtitle: mod.loaderSubtitle,
+  });
 
+  // eslint-disable-next-line no-console
+  console.info('[onegov] sending get-status to SW...');
   const statusReply = await sendMessage({ type: 'get-status', url: location.href });
+  // eslint-disable-next-line no-console
+  console.info('[onegov] SW reply:', statusReply ? statusReply.status?.kind ?? 'no-status-kind' : 'NULL (SW unreachable)');
   const status = statusReply?.status ?? null;
   if (!status || status.kind !== 'verified') {
-    if (isDev()) {
-      // eslint-disable-next-line no-console
-      console.info('[onegov] not verified — restoring original page');
-    }
-    loader.abort();
+    // eslint-disable-next-line no-console
+    console.warn('[onegov] not verified — aborting. status:', status?.kind ?? 'null');
+    loader.abort('Site nesuportat');
     return;
   }
 
@@ -297,32 +304,46 @@ async function activate(mod: SiteModule): Promise<void> {
     let ctx: unknown;
     try {
       ctx = mod.extractContext(document, new URL(location.href));
+      // eslint-disable-next-line no-console
+      console.info('[onegov] extractContext OK');
     } catch (err) {
-      if (isDev()) {
-        // eslint-disable-next-line no-console
-        console.warn('[onegov] extractContext threw:', err);
-      }
+      // eslint-disable-next-line no-console
+      console.warn('[onegov] extractContext threw:', err);
       ctx = null;
     }
     try {
       preactRender(h(mod.App, { ctx, runtime }), mount);
+      // eslint-disable-next-line no-console
+      console.info('[onegov] preactRender OK');
     } catch (err) {
-      if (isDev()) {
-        // eslint-disable-next-line no-console
-        console.warn('[onegov] App render threw:', err);
-      }
+      // eslint-disable-next-line no-console
+      console.error('[onegov] preactRender THREW — aborting loader:', err);
+      // Critical: if the App can't render, don't leave the user on a splash.
+      loader.abort('Eroare la randare');
+      return Promise.resolve();
     }
     return Promise.resolve();
   }
 
+  // eslint-disable-next-line no-console
+  console.info('[onegov] mounting shadow + rendering App...');
   await renderApp();
+  if (loader.disposed) {
+    // renderApp aborted on render error — page already restored, nothing
+    // more to do.
+    return;
+  }
 
   setOverlayVisible(host, !initiallyHidden);
+  // eslint-disable-next-line no-console
+  console.info('[onegov] overlay visible =', !initiallyHidden);
 
   // Hold the loader for at least MIN_LOADER_HOLD_MS so the user sees the
   // transition rather than a snap.
   const elapsed = performance.now() - t0;
   const holdRemaining = Math.max(0, MIN_LOADER_HOLD_MS - elapsed);
+  // eslint-disable-next-line no-console
+  console.info('[onegov] dismissing loader in', Math.round(holdRemaining), 'ms (elapsed since t0:', Math.round(elapsed), 'ms)');
   setTimeout(() => loader.dismiss(), holdRemaining);
 
   // Start passive signal collection (carry-over from v0.1.1 — feeds the

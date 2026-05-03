@@ -80,11 +80,23 @@ describe('mountLoader() — basic mount', () => {
     handle.abort();
   });
 
-  it('embeds the inlined logo SVG', () => {
+  it('inlines the onegov SVG inside the byline (small "Optimizat de" credit)', () => {
+    // v0.2.0+ owner direction: the institution mark is the headline; the
+    // onegov logo appears only as a small "Optimizat de" byline. The default
+    // mount uses the text variant for the headline, so the SVG lives in the
+    // byline span only.
     const handle = mountLoader();
-    const svg = document.querySelector(`#${LOADER_ID} .l-logo svg`);
-    expect(svg).not.toBeNull();
-    expect(svg?.getAttribute('viewBox')).toBe('0 0 358.95 66');
+    const bylineSvg = document.querySelector(`#${LOADER_ID} .l-byline svg`);
+    expect(bylineSvg).not.toBeNull();
+    expect(bylineSvg?.getAttribute('viewBox')).toBe('0 0 358.95 66');
+    handle.abort();
+  });
+
+  it('renders the institution mark as the headline (text variant)', () => {
+    const handle = mountLoader({ mark: { kind: 'text', label: 'TEST', color: '#abcdef' } });
+    const mark = document.querySelector(`#${LOADER_ID} .l-mark`);
+    expect(mark?.textContent).toBe('TEST');
+    expect(mark?.classList.contains('l-mark--text')).toBe(true);
     handle.abort();
   });
 
