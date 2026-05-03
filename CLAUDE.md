@@ -92,6 +92,10 @@ Invariants update — the v0.1/v0.2 invariants 1+2+5 are SUPERSEDED by this rule
 
 This is a fundamental simplification. The shadow-root and hide-original code paths shipped in v0.2 must be DELETED, not just "deprecated".
 
+---
+
+> **MIGRATION NOTE.** Everything below this line describes the v0.1 / v0.2 architecture that R6 replaces. Rules R1–R6 above take precedence over any conflicting prior text. The v0.3 spec at `jobs/v0.3-prebaked/01-architecture-rewrite.md` is the active direction. Sections referencing shadow root / hide-original style / persona picker / Firefox packaging are LEGACY and being deleted as v0.3 lands.
+
 > **v0.1 scope: Chrome desktop only.** Firefox parity moves to v0.2. The codebase stays cross-browser-compatible (avoid Chrome-only APIs where alternatives exist) but Firefox packaging, `web-ext`, `addons-linter`, and `browser_specific_settings.gecko` are deferred. v0.1 ships a single `dist/extension/` loaded via `chrome://extensions` → Load unpacked.
 
 ---
@@ -103,21 +107,15 @@ This is a fundamental simplification. The shadow-root and hide-original code pat
 | **IS** | A browser extension. A read-only, privacy-respecting visual layer over already-rendered gov pages. Open source, MIT-licensed, community-extensible via rule packs. |
 | **IS NOT** | A scraper. A proxy. A backend. A replacement portal. Anything that touches user form data in v0.1. Anything that ships remote code. |
 
-The non-negotiable invariants from `SPEC.md §3` define this product. If a change weakens any invariant, it does not ship — no matter how clever it is.
+### Active invariants (post-R6)
 
-### The five invariants (memorize these)
+R6 above supersedes the original v0.1 invariants 1 + 5 (no DOM mutation, escape-hatch toggle). The remaining invariants stay in force:
 
-1. **Original DOM is never mutated** — relaxed for v0.2 takeover modules in three documented ways:
-   - Allowed: appended `<style id="onegov-hide-original">`, appended `<div id="onegov-loader">`, appended `<div id="onegov-root">` (shadow host).
-   - Allowed: setting `value` on a form input AND dispatching `submit` on a form, ONLY when the user explicitly initiated a submission via our UI (form bridging — read on intent, write on intent, never passively).
-   - Allowed (carry-over from v0.1.1): toggling `documentElement.style.overflow` while the overlay is visible (single inline style, fully reversible).
-   - Forbidden: removing or replacing existing nodes, modifying existing attributes (other than the explicit form-input writes above), mutation observers writing back to the page.
-2. **No form data is passively read.** Never iterate inputs, never read `.value` outside the explicit submit path, never log form contents. The bridge writes values from OUR controlled inputs into the original form on user intent only — see `packages/extension/src/sites/anaf.ro/bridge.ts` for the canonical contract.
-3. **No remote code execution.** No `eval`, no `Function()`, no remote script loading, no `innerHTML` with attacker-influenced data. Inlined SVG in the loader uses `innerHTML` for a controlled, build-time literal — that is the ONLY allowed `innerHTML` path.
-4. **No external network for the extension shell** — relaxed for v0.2 site modules: a site module MAY call public APIs under existing host_permissions (e.g. `webservicesp.anaf.ro` for the anaf takeover) when the call is initiated by user intent. No analytics, no telemetry, no third-party. Document any new external call in the threat model + the module's own README.
-5. **The user can always escape.** One click on the popup primary toggle (or "afișează site original" in the site module's status bar) removes `<style id="onegov-hide-original">` and hides the shadow host — original page becomes fully visible AND interactive immediately.
+- **Invariant 2 — No form data passively read.** Never iterate inputs, never read `.value` outside the explicit submit path, never log form contents. Forms in v0.3 are OUR forms (the original page is replaced); the user fills them; we POST to the institution's API/endpoint via `fetch(..., { credentials: 'include' })`.
+- **Invariant 3 — No remote code execution.** No `eval`, no `Function()`, no remote script loading, no `innerHTML` with attacker-influenced data. Inlined SVGs may use `innerHTML` only for controlled build-time literals (logos, icons).
+- **Invariant 4 — No third-party network.** Calls to the institution's own public APIs (e.g. `webservicesp.anaf.ro`) on user intent are allowed under existing `host_permissions`. No analytics, no telemetry, no DSN, no third-party SDKs.
 
-Any PR that violates an invariant is rejected on sight, regardless of test results.
+Any PR that violates an active invariant or any of R1–R6 is rejected on sight.
 
 ---
 
@@ -177,10 +175,9 @@ After implementation + tests pass, write `jobs/<job>/DONE-<task>.md`:
 - [x] No passive form data reads — bridge only writes on explicit submit intent
 - [x] No remote code, no `eval`/`Function()`/remote script (inlined SVG via controlled literal `innerHTML` is the only allowed `innerHTML` path)
 - [x] No new external network calls outside what the site module documents (e.g. anaf takeover MAY call `webservicesp.anaf.ro` — already in host_permissions)
-- [x] Escape hatch unchanged: removing `#onegov-hide-original` style + hiding shadow host restores live, interactive page
-## Cross-Browser Check
-- [x] Chrome (latest stable) — loads, no console errors
-- [x] Firefox (latest stable) — loads, no console errors
+- [x] R6 — page is replaced via `document.body.replaceChildren`, no shadow root, no hide-original style, no toggle
+## Browser Check
+- [x] Chrome (latest stable) — loads, no console errors. Firefox is v0.2+ scope.
 ```
 
 ### Step 5: Code Review (MANDATORY)
@@ -378,58 +375,40 @@ See `docs/ARCHITECTURE.md` for the live, updated diagram and module API.
 
 ---
 
-## Personas
+## Personas (LEGACY — replaced by density in v0.2)
 
-Manual picker in popup, persisted in `browser.storage.local`. Default: `standard`.
-
-| Persona | Audience | Visual signature |
-| --- | --- | --- |
-| `pensioner` | Older citizens, low digital literacy | ≥18px type, single column, max one action per screen, inline "ce înseamnă?" tooltips |
-| `standard` | Default | Clean gov-standard layout, identitate.gov.ro tokens |
-| `pro` | Accountants, lawyers, repeat users | Dense, keyboard hints visible, batch actions |
-| `journalist` | Investigators | Wide tables, anomaly highlights, copy-as-CSV affordances |
-
-A behavioural classifier ships in v0.2. v0.1 is manual only.
+Personas were a v0.1 idea (pensioner / standard / pro / journalist). v0.2 replaced the demographic picker with a single density preference: `'minimal' | 'simplu' | 'bogat'` (default `simplu`). The persona inference module in the SW is retained for v0.4 behavioural classification but does not surface in the UI. **Do not add new persona-aware components.** Density is the active model.
 
 ---
 
-## Domain status state machine
+## Domain status state machine (still active)
 
-The browser action icon reflects per-tab `DomainStatus` from `packages/core/src/domain-verifier.ts`:
+The browser action badge reflects per-tab `DomainStatus` from `packages/core/src/domain-verifier.ts`:
 
-| Status | Icon | Meaning | Behaviour |
+| Status | Badge | Meaning | Behaviour |
 | --- | --- | --- | --- |
-| `verified` | 🟢 green | Hostname's eTLD+1 matches `_verified-domains.json` | Content script may render rule-pack overlay |
-| `lookalike` | 🔴 red | Levenshtein ≤ 2 OR Cyrillic homograph OR TLD swap of a verified domain | Content script does NOT render. v0.2: anti-phishing toast. |
-| `unknown` | ⚪ gray | Off-list | Content script exits cleanly. No rule pack loads. |
+| `verified` | 🟢 green ✓ | Hostname's eTLD+1 matches `_verified-domains.json` | Content script renders the v0.3 site-data page (when one exists for the domain) |
+| `lookalike` | 🔴 red ! | Levenshtein ≤ 2 OR Cyrillic homograph OR TLD swap of a verified domain | Content script does NOT render. v0.2+: anti-phishing toast. |
+| `unknown` | ⚪ gray (no badge) | Off-list | Content script exits cleanly. |
 
-Lookalike detection lives entirely in `packages/core/src/lookalike.ts` and must catch:
+Lookalike detection lives in `packages/core/src/lookalike.ts` and must catch:
 - `anaf-portal.ro` (Levenshtein + suffix)
 - `аnaf.ro` (Cyrillic а homograph, IDNA-normalised)
 - `anaf.com` (TLD swap)
 
 ---
 
-## Rule pack contract
+## Rule pack contract (LEGACY — replaced by site-data + render engine in v0.3)
 
-Rule packs are declarative JSON validated by Zod against `rule-packs/schema.json`. The `RulePack` and `Route` types live in `packages/core/src/types.ts` — that file is the source of truth.
+The `rule-packs/*.json` extraction-spec format is being retired. v0.3 replaces it with `packages/site-data/<domain>.json` (Zod-typed, includes branding) consumed by the `packages/extension/src/render-engine/`. See `jobs/v0.3-prebaked/01-architecture-rewrite.md` §G for the new schema. The legacy types in `packages/core/src/types.ts` and `rule-packs/` will be deleted as v0.3 lands.
 
-**Authoring workflow:**
-1. Open the target site in Chrome DevTools
-2. Identify semantic elements (headings, key paragraphs, forms, action links)
-3. Write `extract` rules with stable selectors (prefer `[data-*]` and stable IDs; fall back to structural selectors as a last resort)
-4. Define persona overrides (`hide` / `emphasize` / `layout`)
-5. `bun run validate-packs`
-6. Load the extension and confirm extraction picks up correct content
-7. Commit screenshots of before/after (per persona) to `jobs/<job>/qa/`
-
-**v0.1 ship targets** (per `SITES_COVERAGE.md §8`):
-1. `anaf.ro` — homepage + CUI lookup
-2. `dgep.mai.gov.ro` — homepage + appointment flow (most-complained category on fara-hartie.gov.ro)
-3. `portal.just.ro` — case search (institutional showcase + self-admitted broken)
-4. `ghiseul.ro` — homepage + payment flow (highest-traffic gov site)
-5. `rotld.ro` — homepage (developer-flagged niche showcase)
-6. `itmcluj.ro` — homepage (the 2005 → 2026 transformation showcase — strongest visual contrast available)
+**v0.3 ship targets** (per `SITES_COVERAGE.md §8` — same domain list, new architecture):
+1. `anaf.ro` — homepage + CUI lookup (v0.3.0)
+2. `dgep.mai.gov.ro` — homepage + appointment flow (v0.3.x)
+3. `portal.just.ro` — case search (v0.3.x)
+4. `ghiseul.ro` — homepage + payment flow (v0.3.x)
+5. `rotld.ro` — homepage (v0.3.x)
+6. `itmcluj.ro` — homepage — the 2005 → 2026 demo headliner (v0.3.x)
 
 ---
 
@@ -454,19 +433,15 @@ bun run validate-packs
 # Build production bundles
 bun run build
 
-# Package for stores (unsigned in v0.1)
-bun run package
-# → dist/onegov-chrome.zip
-# → dist/onegov-firefox.xpi
-
-# Run E2E (Playwright, Chromium + Firefox)
+# Run E2E (Playwright Chromium with --load-extension)
 bun run e2e
 ```
 
+> Firefox parity, `bun run package` (zip/xpi), and `web-ext` tooling are v0.2+ scope and not wired today.
+
 ### Loading the extension
 
-**Chrome:** `chrome://extensions` → enable Developer mode → Load unpacked → select `dist/extension/`.
-**Firefox:** `web-ext run --source-dir dist/extension/` from `packages/extension/`, or `about:debugging` → This Firefox → Load Temporary Add-on.
+`chrome://extensions` → enable Developer mode → Load unpacked → select `dist/extension/`. Reload the extension after every `bun run build` to pick up changes.
 
 ### Required tools
 
@@ -601,38 +576,46 @@ CAPTCHAs (reCAPTCHA, hCaptcha, Turnstile), OAuth iframes, payment iframes, 3-D-S
 11. Bundle-size check: `bun run build && du -sh dist/extension/content.js`
 12. Update `docs/ARCHITECTURE.md` only if you changed module-level public API.
 
-### When adding a new rule pack
+### When wiring live storage-backed UI state (R3)
 
-1. Create `rule-packs/<domain>.json`
-2. Inspect the live site and write `extract` rules with stable selectors
-3. Define persona overrides (at least one persona must produce a visibly different result)
-4. `bun run validate-packs` — must pass
-5. Manually QA in Chrome **and** Firefox; commit before/after screenshots to `jobs/<job>/qa/`
-6. If the domain isn't already in `_verified-domains.json`, add it with a sourced `source` URL
-7. Update `host_permissions` in `packages/extension/src/manifest.json` (orchestrator approval required)
-8. Update `SITES_COVERAGE.md` if the site materially changes the catalogue
+1. Pass per-render values as PRIMITIVE props on the App component (e.g. `<App density={current} fullOverlayActive={true} />`). Do NOT mutate an object that's already been passed as a prop.
+2. The canonical example is `runtime.fullOverlayActive: boolean` in `packages/extension/src/sites/types.ts` — added 2026-05-03 to fix the live-toggle bug. Preact short-circuits on prop reference equality, so swapping a primitive forces re-render; mutating a shared object does not.
+3. On `chrome.storage.onChanged`, compute new prop values and call `preactRender(<App new={...} />, mount)` again. Confirm by toggling the popup primary switch and watching the rendered overlay update without a page reload.
+4. Add a smoke test that asserts toggling storage actually re-renders with the new prop value.
+
+### When adding a new site map (v0.3 site-data)
+
+1. Create `packages/site-data/data/<domain>.json` per the Zod schema in `packages/site-data/src/schema.ts`.
+2. **R1 — branding is required**: include `branding.logo` (institution's official logo, src URL or inline base64), `branding.fullName` (full Romanian name), `branding.shortLabel` (acronym), `branding.accentColor` (hex). The render engine surfaces these in every page header — the user sees the institution's identity, not ours.
+3. Define `pages` for each route the user can land on, plus `url_patterns` mapping incoming URLs to page IDs.
+4. `bun run --cwd packages/site-data validate` — must pass.
+5. R4 — every nav / card click in the rendered output must point to either another mapped page OR an `external` template page that links out (no silent no-ops).
+6. Manually QA via the `packages/e2e` Playwright test (`--load-extension`); commit before/after screenshots to `jobs/<job>/qa/`.
+7. If the domain isn't in the verified list, add it.
 
 ### When extending the verified domain list
 
-1. Add entries to `rule-packs/_verified-domains.json` with `domain` (eTLD+1), `category` (`gov` | `public-interest`), `addedAt` (ISO date), `source` (URL evidence)
-2. Run lookalike test suite to ensure no false positives against existing list
-3. Bump `version` in the file
-4. Document the addition in `docs/LOG.md`
+1. Add entries to `rule-packs/_verified-domains.json` with `domain` (eTLD+1), `category` (`gov` | `public-interest`), `addedAt` (ISO date), `source` (URL evidence). (This roster file survives the rule-pack-to-site-data migration; it's still consumed by the verifier.)
+2. Run lookalike test suite to ensure no false positives against existing list.
+3. Bump `version` in the file.
+4. Document the addition in `docs/LOG.md`.
 
 ### When changing manifest permissions
 
 1. **Orchestrator approval required.** No worker may add permissions unilaterally.
-2. Justify in the task spec: which capability requires it, why no narrower alternative works
-3. Update `manifest.json` for both Chrome and Firefox flavours (handled by build script)
-4. Re-run cross-browser smoke
-5. Update `SECURITY.md` threat model section
+2. Justify in the task spec: which capability requires it, why no narrower alternative works.
+3. Update `manifest.json`. (Firefox `browser_specific_settings.gecko` is v0.2+ scope; Chrome only for now.)
+4. Update `SECURITY.md` threat model section.
 
 ### When releasing v0.x
 
-1. All acceptance criteria in `SPEC.md §8` ticked
-2. Verification protocol in `SPEC.md §9` executed and recorded
-3. Bump `version` in `packages/extension/src/manifest.json` and root `package.json`
-4. `bun run package` produces `dist/onegov-chrome.zip` + `dist/onegov-firefox.xpi`
-5. Tag: `git tag v0.1.0 && git push --tags`
-6. Update `README.md` install instructions
-7. Demo recording per `SITES_COVERAGE.md §9`
+1. All acceptance criteria in the active `jobs/<version>/01-*.md` spec ticked.
+2. Bump `version` in `packages/extension/src/manifest.json` and root `package.json`.
+3. `bun run build` produces `dist/extension/`. (Store-zip packaging is v0.2+.)
+4. Tag: `git tag v0.x.y && git push --tags`.
+5. Update `README.md` install instructions if anything changed.
+6. Append a release entry to `docs/LOG.md`.
+
+### After EVERY theme.css edit (sync gate)
+
+`packages/ui/src/theme.css` is mirrored into `packages/ui/src/theme.ts` as a literal string by `packages/ui/scripts/sync-theme.ts`. The renderer ships the TS string, NOT the CSS file. **Run `bun run --cwd packages/ui scripts/sync-theme.ts` after every theme.css edit, before `bun run build`.** v0.2.x had three rounds of "my CSS fix isn't shipping" because of this; the sync gate must not be skipped.
