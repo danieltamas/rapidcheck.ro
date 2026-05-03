@@ -161,9 +161,9 @@ function applyOverlayStyles(host: HTMLDivElement): void {
  * a `readystatechange` fallback for browsers that don't deliver the
  * mutation in time.
  */
-function waitForBody(): Promise<HTMLBodyElement> {
+function waitForBody(): Promise<HTMLElement> {
   if (document.body) return Promise.resolve(document.body);
-  return new Promise<HTMLBodyElement>((resolve) => {
+  return new Promise<HTMLElement>((resolve) => {
     const settle = (): boolean => {
       if (document.body) {
         observer.disconnect();

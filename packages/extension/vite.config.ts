@@ -135,7 +135,7 @@ export default defineConfig(() => {
       build: {
         outDir,
         emptyOutDir: false,
-        sourcemap: true,
+        sourcemap: false,
         target: 'esnext',
         lib: {
           entry: resolve(srcDir, 'background/index.ts'),
@@ -155,7 +155,7 @@ export default defineConfig(() => {
       build: {
         outDir,
         emptyOutDir: false,
-        sourcemap: true,
+        sourcemap: false,
         target: 'esnext',
         lib: {
           entry: resolve(srcDir, 'content/index.ts'),
@@ -176,7 +176,7 @@ export default defineConfig(() => {
       build: {
         outDir,
         emptyOutDir: false,
-        sourcemap: true,
+        sourcemap: false,
         target: 'esnext',
         lib: {
           entry: resolve(srcDir, 'popup/index.tsx'),
@@ -198,7 +198,7 @@ export default defineConfig(() => {
     build: {
       outDir,
       emptyOutDir: true,
-      sourcemap: true,
+      sourcemap: false,
       target: 'esnext',
       lib: {
         entry: resolve(srcDir, 'popup/index.tsx'),

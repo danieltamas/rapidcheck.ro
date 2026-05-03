@@ -1240,6 +1240,13 @@
 .onegov-shell-v2 {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* Define the named areas in the BASE case too — without this, grid-area:
+     header/main/footer references undefined names and the browser falls back
+     to auto-placement. With no header passed, that puts <main> in row 1
+     (auto height = collapses) and <footer> in row 2 (1fr = giant), so the
+     footer ends up appearing ABOVE the hero with the page broken. The
+     --with-aside variant overrides this declaration with a 2-col grid. */
+  grid-template-areas: 'header' 'main' 'footer';
   min-height: 100%;
 }
 .onegov-shell-v2--with-aside {
@@ -1247,7 +1254,11 @@
   grid-template-areas: 'header' 'main' 'footer';
 }
 .onegov-shell-v2 > .onegov-shell-v2__header { grid-area: header; }
-.onegov-shell-v2 > .onegov-shell-v2__main { grid-area: main; padding: var(--onegov-sp-7) var(--onegov-sp-6); }
+.onegov-shell-v2 > .onegov-shell-v2__main {
+  grid-area: main;
+  padding: var(--onegov-sp-7) var(--onegov-sp-6);
+  min-width: 0;
+}
 .onegov-shell-v2 > .onegov-shell-v2__aside { display: none; }
 .onegov-shell-v2 > .onegov-shell-v2__footer { grid-area: footer; }
 @media (min-width: 1024px) {
