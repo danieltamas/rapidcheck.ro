@@ -371,7 +371,7 @@ async function activate(mod: SiteModule): Promise<void> {
   // closures keeps the App free of chrome.* references.
   let currentDensity: Density = settings.density;
   let currentEnabled = settings.enabled;
-  let currentShowOriginal = settings.showOriginal;
+  let currentShowOriginal: boolean = settings.showOriginal;
 
   const runtime: SiteRuntime = {
     density: currentDensity,
