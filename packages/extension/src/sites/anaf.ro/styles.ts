@@ -20,6 +20,8 @@ export const ANAF_CSS = `
 }
 
 /* StatusBar — slim, white, subtle bottom border */
+.anaf-shell[data-mode="minimal"] { pointer-events: none; }
+.anaf-shell[data-mode="minimal"] .anaf-statusbar { pointer-events: auto; }
 .anaf-statusbar {
   position: sticky;
   top: 0;
@@ -158,7 +160,9 @@ export const ANAF_CSS = `
 
 /* Mobile tweaks */
 @media (max-width: 640px) {
-  .anaf-statusbar {
+  .anaf-shell[data-mode="minimal"] { pointer-events: none; }
+.anaf-shell[data-mode="minimal"] .anaf-statusbar { pointer-events: auto; }
+.anaf-statusbar {
     height: auto;
     padding: var(--onegov-sp-2) 0;
   }

@@ -37,6 +37,13 @@ export interface SiteRuntime {
   setDensity(next: Density): void;
   /** Current density, derived from chrome.storage.local at mount time. */
   density: Density;
+  /**
+   * True when the user has clicked "afișează site original" — App should
+   * render the StatusBar in a slim minimal-mode header at the top, with
+   * the body content hidden. The original page is visible underneath
+   * because the content script removed the hide-original style.
+   */
+  showingOriginal: boolean;
 }
 
 /**

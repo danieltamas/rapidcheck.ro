@@ -1255,25 +1255,43 @@ export const THEME_CSS = `/**
 /* AppShell                                                            */
 /* =================================================================== */
 
+/* AppShell — flexbox column. Was CSS grid with named areas (\`grid-area:
+   header/main/footer\`) but the named areas were only defined in the
+   --with-aside variant, so the base case fell back to auto-placement
+   which broke layouts when consumers omitted the header prop. Flexbox
+   column is bulletproof for the common case (header → main → footer),
+   and the --with-aside variant uses a separate flex-row layout below. */
 .onegov-shell-v2 {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   min-height: 100%;
+  width: 100%;
 }
-.onegov-shell-v2--with-aside {
-  grid-template-columns: 1fr;
-  grid-template-areas: 'header' 'main' 'footer';
+.onegov-shell-v2 > .onegov-shell-v2__header { flex: 0 0 auto; }
+.onegov-shell-v2 > .onegov-shell-v2__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--onegov-sp-7) var(--onegov-sp-6);
 }
-.onegov-shell-v2 > .onegov-shell-v2__header { grid-area: header; }
-.onegov-shell-v2 > .onegov-shell-v2__main { grid-area: main; padding: var(--onegov-sp-7) var(--onegov-sp-6); }
 .onegov-shell-v2 > .onegov-shell-v2__aside { display: none; }
-.onegov-shell-v2 > .onegov-shell-v2__footer { grid-area: footer; }
+.onegov-shell-v2 > .onegov-shell-v2__footer { flex: 0 0 auto; }
+
+/* With aside — sidebar layout for lg+ viewports. */
+.onegov-shell-v2--with-aside {
+  display: flex;
+  flex-direction: column;
+}
 @media (min-width: 1024px) {
   .onegov-shell-v2--with-aside {
+    display: grid;
     grid-template-columns: 240px 1fr;
     grid-template-areas: 'header header' 'aside main' 'footer footer';
   }
-  .onegov-shell-v2 > .onegov-shell-v2__aside {
+  .onegov-shell-v2--with-aside > .onegov-shell-v2__header { grid-area: header; }
+  .onegov-shell-v2--with-aside > .onegov-shell-v2__main { grid-area: main; }
+  .onegov-shell-v2--with-aside > .onegov-shell-v2__footer { grid-area: footer; }
+  .onegov-shell-v2--with-aside > .onegov-shell-v2__aside {
     grid-area: aside;
     display: block;
     border-right: 1px solid var(--onegov-color-border);

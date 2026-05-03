@@ -36,10 +36,19 @@ const EMPTY_CTX: AnafContext = {
 export function App({ ctx, runtime }: Props) {
   const safe = ctx ?? EMPTY_CTX;
 
+  // When the user clicks "afișează site original" we keep the StatusBar
+  // visible (so they can re-enable) but hide the body content. The content
+  // script handles the visual half (slim host height, hide-original style
+  // removed so the page underneath shows through). This component just
+  // skips renderRoute().
   return (
-    <div class="anaf-shell" data-route={safe.route.kind}>
+    <div
+      class="anaf-shell"
+      data-route={safe.route.kind}
+      data-mode={runtime.showingOriginal ? 'minimal' : 'overlay'}
+    >
       <StatusBar runtime={runtime} />
-      {renderRoute(safe, runtime)}
+      {runtime.showingOriginal ? null : renderRoute(safe, runtime)}
     </div>
   );
 }

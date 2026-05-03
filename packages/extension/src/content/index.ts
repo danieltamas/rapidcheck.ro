@@ -215,15 +215,63 @@ function unlockDocumentScroll(): void {
   previousDocumentOverflow = null;
 }
 
-function setOverlayVisible(host: HTMLDivElement, visible: boolean): void {
-  if (visible) {
-    host.style.setProperty('display', 'block', 'important');
-    lockDocumentScroll();
-    applyHideOriginal();
-  } else {
-    host.style.setProperty('display', 'none', 'important');
-    unlockDocumentScroll();
-    removeHideOriginal();
+/**
+ * Three host display modes:
+ *   'overlay'  — full viewport, opaque, hide-original style applied (default
+ *                when extensionEnabled && !showOriginal)
+ *   'minimal'  — slim 48px strip at top of viewport, hide-original removed,
+ *                original page visible underneath. The status bar stays
+ *                mounted so the user can re-enable. Active when the user
+ *                clicked "afișează site original" but extensionEnabled.
+ *   'off'      — host hidden entirely, hide-original removed, original page
+ *                fully visible. Active when extensionEnabled === false.
+ */
+type HostMode = 'overlay' | 'minimal' | 'off';
+
+function setHostMode(host: HTMLDivElement, mode: HostMode): void {
+  // eslint-disable-next-line no-console
+  console.info('[onegov] setHostMode →', mode);
+  switch (mode) {
+    case 'overlay': {
+      host.style.setProperty('display', 'block', 'important');
+      host.style.setProperty('position', 'fixed', 'important');
+      host.style.setProperty('inset', '0', 'important');
+      host.style.setProperty('top', '0', 'important');
+      host.style.setProperty('bottom', '0', 'important');
+      host.style.setProperty('width', '100%', 'important');
+      host.style.setProperty('height', '100%', 'important');
+      host.style.setProperty('background', '#ffffff', 'important');
+      host.style.setProperty('overflow-y', 'auto', 'important');
+      host.style.setProperty('pointer-events', 'auto', 'important');
+      lockDocumentScroll();
+      applyHideOriginal();
+      return;
+    }
+    case 'minimal': {
+      // Slim strip at top — original page below is fully visible + interactive.
+      host.style.setProperty('display', 'block', 'important');
+      host.style.setProperty('position', 'fixed', 'important');
+      host.style.setProperty('top', '0', 'important');
+      host.style.setProperty('left', '0', 'important');
+      host.style.setProperty('right', '0', 'important');
+      host.style.setProperty('bottom', 'auto', 'important');
+      host.style.setProperty('width', '100%', 'important');
+      host.style.setProperty('height', '48px', 'important');
+      host.style.setProperty('background', 'transparent', 'important');
+      host.style.setProperty('overflow', 'visible', 'important');
+      host.style.setProperty('pointer-events', 'none', 'important');
+      // The status bar inside re-enables pointer-events on itself via the
+      // anaf-statusbar class (see styles.ts). Body content not rendered.
+      unlockDocumentScroll();
+      removeHideOriginal();
+      return;
+    }
+    case 'off': {
+      host.style.setProperty('display', 'none', 'important');
+      unlockDocumentScroll();
+      removeHideOriginal();
+      return;
+    }
   }
 }
 
@@ -280,7 +328,6 @@ async function activate(mod: SiteModule): Promise<void> {
   }
 
   const settings = await readSettings();
-  const initiallyHidden = !settings.enabled || settings.showOriginal;
 
   // Mount shadow host (still hidden if user has overlay off). Awaits
   // document.body because we ran at document_start before body was parsed.
@@ -321,6 +368,7 @@ async function activate(mod: SiteModule): Promise<void> {
 
   const runtime: SiteRuntime = {
     density: currentDensity,
+    showingOriginal: currentShowOriginal,
     showOriginal(): void {
       void chrome.storage.local.set({ showOriginal: true }).catch(() => {});
     },
@@ -372,9 +420,13 @@ async function activate(mod: SiteModule): Promise<void> {
     return;
   }
 
-  setOverlayVisible(host, !initiallyHidden);
-  // eslint-disable-next-line no-console
-  console.info('[onegov] overlay visible =', !initiallyHidden);
+  // Initial host mode based on the resolved settings:
+  //   !enabled         → off    (extension disabled in popup)
+  //   showOriginal     → minimal (slim status bar at top, original visible)
+  //   default          → overlay (full takeover)
+  const initialMode: HostMode =
+    !currentEnabled ? 'off' : currentShowOriginal ? 'minimal' : 'overlay';
+  setHostMode(host, initialMode);
 
   // Hold the loader for at least MIN_LOADER_HOLD_MS so the user sees the
   // transition rather than a snap.
@@ -414,8 +466,15 @@ async function activate(mod: SiteModule): Promise<void> {
           : currentShowOriginal;
       currentEnabled = enabled;
       currentShowOriginal = showOriginal;
-      const hidden = !enabled || showOriginal;
-      setOverlayVisible(host, !hidden);
+      // 3-state mode: off (extension disabled) > minimal (peek at original
+      // with slim status bar) > overlay (full takeover).
+      const nextMode: HostMode = !enabled ? 'off' : showOriginal ? 'minimal' : 'overlay';
+      setHostMode(host, nextMode);
+      // Tell the App about the new showingOriginal so it skips renderRoute()
+      // and only mounts the StatusBar — the body content disappears in
+      // 'minimal' mode but the bar stays so the user can re-enable.
+      runtime.showingOriginal = showOriginal;
+      void renderApp();
     }
   });
 }
