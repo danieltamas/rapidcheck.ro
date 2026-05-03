@@ -358,3 +358,88 @@ Verification:
 **Manual smoke deferred to owner** — Playwright MCP doesn't support Chrome `--load-extension`. After reload of unpacked extension, owner should see overlay visibly take over the viewport on anaf.ro, premium popup with inferred persona + override pathway, primary on/off toggle works.
 
 **Cleanup:** deleted task branch + worktree + alias branches.
+
+---
+
+# OWNER FEEDBACK JOURNAL
+
+This section captures every directional shift the owner has called for, in their own words where possible. Reverse-chronological. Use this to understand WHY the architecture has changed across versions, and what's a no-go for any future worker.
+
+## 2026-05-03 — fifth pivot: REPLACE the page (no shadow root, no toggle)
+
+Owner saw the v0.2 anaf takeover with the "show original" toggle and the closed shadow root + hide-original style mechanism, and rejected it:
+
+> *"even the docs say 'preserve the original page underneath' — this is fucking stupid. I DID NOT ASK FOR THIS"*
+
+**What changed:** v0.2's shadow-root + hide-original-style + "afișează site original" toggle approach is dead. The new model: replace `document.body` content with our app root. Original DOM is data, not preserved. Per-site disable in popup is the only escape; no mid-flight toggle.
+
+**Codified in:** CLAUDE.md §R6, memory `feedback_replace_page_no_overlay.md`.
+
+## 2026-05-03 — fourth pivot: components must mirror fara-hartie.gov.ro + preserve institution branding
+
+Owner saw the v0.2 design system (50 generic components) on real anaf.ro and rejected it:
+
+> *"the components are dumb, not smooth and nice. for instance the accordion does not keep only one panel open and smoothly closes the other. the shell is also stupid, it does not keep a structure. each reskin should follow the structure and the ui components of fara-hartie.gov.ro - put it in the fucking rules"*
+
+> *"the reskin completely DITCHES branding of the initial site. this is fucking wrong and this is exactly i said I did not want"*
+
+> *"I want all components to follow fara-hartie.gov.ro and the official color scheme"*
+
+**What changed:**
+- Design system (`@onegov/ui` v0.2) must be REWRITTEN to mirror fara-hartie.gov.ro patterns: pill buttons, single-open smooth accordion, soft cards with icon-square, navy + yellow + red RO color scheme.
+- Every reskin MUST preserve the institution's branding: official logo + full Romanian name + accent color in the visible header. Onegov is a small byline ("Optimizat de [logo]"), never the headline. The user came for ANAF, not for us.
+
+**Codified in:** CLAUDE.md §R1 + §R2 + §R5, memories `feedback_design_system_fara_hartie.md` and `feedback_preserve_institution_branding.md`.
+
+## 2026-05-03 — third pivot: pre-baked site maps + render engine
+
+Owner verdict on three sequential v0.2 UI sprints (live DOM extraction + Preact in shadow root):
+
+> *"the current strategy seems not to work"*
+> *"the entirety of each site should be mapped and somehow made into some fast rules that render instantly instead of on the fly parsing. this means I could do a crawler like service that extracts everything related to the DOM and then a rendering engine of sorts"*
+
+**What changed:** v0.3 architecture — `packages/site-data/` (Zod-typed JSON per gov site), `packages/api-clients/` (anaf/bnr/vies extracted from demoanaf), `packages/extension/render-engine/` (8-10 page templates), `packages/crawler/` (Node-only, offline mapper), visual regression Playwright test with `--load-extension`.
+
+**Codified in:** `jobs/v0.3-prebaked/01-architecture-rewrite.md` (now being rewritten with R1-R6 baked in).
+
+## 2026-05-02 — second pivot: hide-and-replace + form bridging
+
+Owner reviewed the v0.1 read-only overlay rendering extracted nodes from the live page and rejected it:
+
+> *"the purpose of this extension is to actually be a viable option for people who want to use existing services but with a 2026 UI+UX [...] the endgoal is to have this simple extension make all stupid ass gov sites from 1800 look and behave like 2026 ones without breaking any functionality"*
+
+**What changed:** v0.2 architecture — hide original via injected style, render hand-crafted Preact app for known sites, form bridging via DOM form proxy. Implemented as the anaf.ro takeover. Subsequently rejected on 2026-05-03 (see fourth + fifth pivots above).
+
+## 2026-05-02 — first pivot: density preference, drop persona picker
+
+Owner reviewed the v0.1.1 popup with auto-inferred persona (pensioner / standard / pro / journalist):
+
+> *"the persona switcher should be inferred not set by the user [...] persona picking is stupid"*
+> *"maybe a more (minimal, simple, rich) categorization FOR THE USER would be more useful"*
+
+**What changed:** Popup persona pill replaced with density chip (Minimal / Simplu / Bogat). Persona inference module retained in SW for v0.4+ if behavioral classification is reintroduced.
+
+## 2026-05-02 — initial owner direction
+
+Owner described the project at kickoff:
+
+> *"I need a self-evolving unified UI like per the spec [...] the purpose of the extension is to actually be a viable option for people who want to use existing services but with a 2026 UI+UX [...] the endgoal is to have this simple extension make all stupid ass gov sites from 1800 look and behave like 2026 ones without breaking any functionality"*
+
+The v0.1 spec captured this as: rule-pack-driven extraction + closed-shadow-root rendering + persona variants. Three subsequent rejections (above) reshape the strategy.
+
+---
+
+# CURRENT STATE (as of 2026-05-03)
+
+**On `main`:**
+- v0.2 architecture deployed: shadow-root takeover for anaf.ro, badge-only for other 5 ship-list sites
+- v0.2 design system shipped (`@onegov/ui` 50 components + tokens + catalog + playground) — **rejected by owner; needs rewrite for v0.3**
+- Last-good build: ship size 758 KB / 2 MB cap, 522 tests passing (2 pre-existing no-DOM canary failures from happy-dom GlobalRegistrator)
+
+**Currently broken / known issues (owner-reported):**
+- Live toggles don't work — popup primary toggle and "afișează site original" status-bar button don't update without page refresh. Root cause: storage subscription updates `runtime.showingOriginal` in place; Preact short-circuits on reference equality.
+- "Calendar fiscal" service card click does nothing — navigation to deep route lands on a page the rule pack doesn't match → content script exits silently → user sees raw anaf.
+- Layout regressions: Hero overlapping Footer in some persona modes (root cause was theme.css → theme.ts sync gap; fixed but downstream styling still inconsistent with fara-hartie reference).
+- Reskin shows "OG · pe anaf.ro" in the header instead of preserving ANAF's logo + full Romanian name. Rejected by owner.
+
+**Next move:** v0.3 architecture rewrite per rules R1-R6 in CLAUDE.md. New worker spec at `jobs/v0.3-prebaked/01-architecture-rewrite.md` (being rewritten now to bake in the new rules).

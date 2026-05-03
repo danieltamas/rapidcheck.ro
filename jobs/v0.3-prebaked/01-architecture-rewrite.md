@@ -1,250 +1,302 @@
-# Task: v0.3 architecture — pre-baked site maps + render engine + crawler
+# Task: v0.3 — page-replacement architecture + fara-hartie design system + anaf rewrite
 
 **Job:** v0.3-prebaked
 **Group:** architecture
 **Branch:** `job/v0.3-prebaked/architecture-rewrite`
-**Mode:** Worker (multi-commit, sequential)
-**Touches:** new `packages/site-data/`, new `packages/crawler/`, new `packages/api-clients/`, modifies `packages/extension/`, leaves `packages/ui/` and `packages/core/` alone
+**Mode:** Worker (multi-commit, sequential, foundational rewrite)
 
-> v0.2 architecture (live DOM extraction + Preact render in shadow root) is being retired. v0.3 replaces it with pre-baked JSON site maps consumed by a generic render engine. The extension content script no longer parses anaf.ro's DOM — it does an URL → site-data lookup → render. Live data comes from real APIs, not page scraping.
-
----
-
-## Why this exists (owner direction, 2026-05-03)
-
-Owner verdict on v0.2: **"the current strategy seems not to work"**. Three sequential UI sprints converged on the same broken pattern: live DOM extraction returns garbage (WebSphere portlet IDs as content), shape contracts evaluated at render time stutter, rendering-on-the-fly is slow and fragile. Every visible "premium" overlay still leaked the source site's structure.
-
-Owner's proposed fix:
-
-> "the entirety of each site should be mapped and somehow made into some fast rules that render instantly instead of on the fly parsing. this means I could do a crawler like service that extracts everything related to the DOM and then a rendering engine of sorts"
-
-This is the right architecture. v0.3 implements it.
+> Owner verdict on v0.2 architecture (live DOM extraction + closed shadow root + hide-original toggle): rejected. Owner verdict on v0.2 design system (50 generic components): rejected. v0.3 is a clean rewrite per the rules in CLAUDE.md §R1–§R6.
 
 ---
 
-## Architecture
+## ⚠️ READ FIRST
+
+1. **`CLAUDE.md`** — START GATE. Read §READ FIRST + §NON-NEGOTIABLE PRODUCT RULES (R1–R6). The rules are the contract.
+2. **`docs/LOG.md`** — full **OWNER FEEDBACK JOURNAL** at the end. Five strategic pivots in 48 hours; understand WHY before writing code.
+3. **The reference site**: open `https://fara-hartie.gov.ro` in a browser. Match its proportions, easings, button radii, accordion animation, color usage. Do NOT invent a visual identity.
+4. The previous v0.3 worker was killed mid-flight. Their unfinished work is in branch `worktree-agent-a70501de` if useful for reference, but **do not blindly continue from it** — owner rules R1–R6 are new.
+
+---
+
+## The six rules (verbatim summary — full text in CLAUDE.md)
+
+- **R1.** PRESERVE INSTITUTION BRANDING. Every reskin keeps the institution's logo + full Romanian name + accent color in the visible header. Onegov is a small "Optimizat de" byline, never the headline.
+- **R2.** Design system mirrors `fara-hartie.gov.ro`. Pill buttons, single-open smooth accordion, soft cards with icon-square at left, navy + yellow + red RO colors, lavender section background, white card surfaces.
+- **R3.** Toggles work LIVE — no page refresh.
+- **R4.** Every nav / card click MUST do something. Either render our version of the destination page, or show a clear "În curând — deschide pe <institution>.ro" placeholder with a working link.
+- **R5.** Existing v0.2 design system needs rewriting. Rebuild Button / Card / Hero / Header / Footer / Accordion / AppShell / NavGrid / Inputs to match fara-hartie.
+- **R6.** REPLACE the page. No shadow root. No hide-original style. No "show original" toggle. Mutate `document.body`. Per-site disable lives in popup.
+
+---
+
+## Architecture (post-rules)
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ packages/crawler/  (offline, NEVER ships in extension)             │
-│  - Visits each gov site (Playwright + Claude API)                  │
-│  - Extracts: pages, services, navigation, forms, action endpoints  │
-│  - LLM classifies sections, infers intents, summarizes content     │
-│  - Outputs: packages/site-data/<domain>.json                       │
-│  - Versioned + diffed; human review on each crawl run              │
-│  - CLI: bun run --cwd packages/crawler crawl --site anaf.ro        │
+│  Visits each gov site → extracts pages, services, nav, forms,      │
+│  endpoints, INSTITUTION BRANDING (logo URL, full name, colors)     │
+│  Output: packages/site-data/<domain>.json                          │
 └────────────────────────────────────────────────────────────────────┘
                             │
-                            ▼ (artifact, committed)
+                            ▼ (committed, version-controlled)
 ┌────────────────────────────────────────────────────────────────────┐
-│ packages/site-data/  (versioned JSON, BUNDLED WITH EXTENSION)      │
-│  anaf.ro.json    (~50-200 KB per site — well under bundle budget)  │
-│  dgep.mai.gov.ro.json                                              │
-│  ghiseul.ro.json                                                   │
-│  portal.just.ro.json                                               │
-│  rotld.ro.json                                                     │
-│  itmcluj.ro.json                                                   │
+│ packages/site-data/  (JSON per site, BUNDLED in extension)         │
+│  anaf.ro.json — pages + branding (logo URL, full name, color)      │
+│  + assets/ (logos pre-fetched/inlined as needed)                   │
 └────────────────────────────────────────────────────────────────────┘
                             │
-                            ▼ (consumed at runtime)
+                            ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ packages/extension/src/main/  (the new content script)             │
+│  1. document_idle (NOT document_start — we don't need a splash;    │
+│     we just need body to exist before we replace it)               │
+│  2. lookup site-data for current domain                            │
+│  3. extract context from original DOM (read-only — sessions etc.)  │
+│  4. document.body.replaceChildren(appRoot)  ← THE REPLACEMENT      │
+│  5. Render the page via render-engine                              │
+│  6. Subscribe to chrome.storage.onChanged for LIVE prop updates    │
+│     (R3 — no page refresh required)                                │
+│  NO shadow root. NO hide-original style. NO toggle.                │
+└────────────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
 ┌────────────────────────────────────────────────────────────────────┐
 │ packages/extension/src/render-engine/                              │
-│  - lookup(url) → SitePage from bundled site-data                   │
-│  - render(page, runtime) → Preact tree composed from @onegov/ui    │
-│  - Handles 8-10 page templates: home, form, list, detail,          │
-│    dashboard, search, document, error, empty, external             │
-│  - INSTANT — no DOM walk, no async, synchronous render             │
+│  Lookup URL → SitePage from bundled site-data                      │
+│  Render Preact tree composed from @onegov/ui (rewritten)           │
+│  Page templates: home, form, list, detail, dashboard, search,      │
+│  document, external, error, empty                                  │
+│  Every template includes the institution's logo + name (R1)        │
 └────────────────────────────────────────────────────────────────────┘
                             │
-                            ▼ (interactions hit real APIs)
+                            ▼
 ┌────────────────────────────────────────────────────────────────────┐
 │ packages/api-clients/                                              │
-│  anaf-api/    webservicesp.anaf.ro wrappers (CUI lookup, balance)  │
-│  bnr-api/     curs valutar                                         │
-│  vies-api/    EU VAT validation                                    │
-│  onrc-api/    company lookup                                       │
-│  generic/     fetch with the user's session cookies for sites      │
-│               without an API (POST to known form endpoints)        │
-│  Single source of truth — used by both onegov.ro extension AND     │
-│  demoanaf.ro frontend. Tree-shakeable per consumer.                │
+│  anaf-api/  webservicesp.anaf.ro wrappers                          │
+│  bnr-api/   curs valutar                                           │
+│  vies-api/  EU VAT validation                                      │
+│  Form submissions: fetch(originalEndpoint, { credentials:          │
+│  'include' }) — cookies persist on the domain even after body      │
+│  replacement                                                        │
 └────────────────────────────────────────────────────────────────────┘
 ```
-
-**The extension content script becomes radically simpler:**
-
-```ts
-async function activate() {
-  const loader = mountLoader({ mark: siteData.brand });
-  await waitForBody();
-  const page = lookupPage(location.href);  // synchronous, JSON lookup
-  if (!page) return loader.abort('Pagina nu este în harta noastră');
-  const { host, shadow } = mountShadowHost();
-  applyHideOriginal();
-  injectStyles(shadow, themeCss);
-  preactRender(<RenderEngine page={page} runtime={runtime} />, shadow);
-  loader.dismiss();
-}
-```
-
-No `extractContext`, no shape evaluation, no `SerializableDoc`, no `applyPersonaOverrides` at runtime. All of that moved offline into the crawler.
 
 ---
 
 ## Acceptance criteria
 
-### A. `packages/site-data/` — JSON schema + first site
+### A. Design system rewrite (`packages/ui/`) — match fara-hartie
 
-- [ ] New workspace package `@onegov/site-data` (publishable as a separate npm package later — useful for third parties consuming our maps)
-- [ ] Zod-typed schema in `packages/site-data/src/schema.ts` defining `SiteMap`, `SitePage`, `PageTemplate`, `Action`, `Form`, `NavSection`, etc. (see "Schema sketch" below)
-- [ ] `packages/site-data/anaf.ro.json` — hand-curated for v0.3.0 (the crawler will replace this in v0.3.1+ once the crawler can produce equivalent quality automatically)
-- [ ] Validation script: `bun run --cwd packages/site-data validate` — parses every JSON against the Zod schema, fails loud on drift
-- [ ] Build-time check: extension's `bun run build` validates all bundled site-data and refuses to build on schema mismatch
+Open https://fara-hartie.gov.ro and match their patterns. The existing v0.2 components stay only where they're not visually rendered (utility wrappers like Stack, Cluster, Container, Box). The visually-rendered components MUST be rewritten:
 
-### B. `packages/api-clients/` — extracted, shared, typed
+- [ ] **Token system** rewrite: `--gov-primary` navy `#1a4598` (or measured from fara-hartie), `--gov-accent` yellow `#FFCD00` (RO flag), `--gov-danger` red `#C8102E` (RO flag), `--gov-surface` lavender-tinged off-white `#f5f6fa`, `--gov-card-bg` white, navy text, gray secondary text. Use generous line-height (1.6).
+- [ ] **Button**: pill-shaped (full radius), three variants:
+  - `primary`: yellow bg, dark navy text, optional icon left
+  - `secondary`: white bg, blue border + text, optional icon left
+  - `ghost`: transparent, blue text, hover bg
+  - All sizes have generous horizontal padding so the pill silhouette reads
+- [ ] **Header (AppShell)**: navy strip (~64–72px tall), institution logo left + wordmark, primary nav as PILLS centered (rounded full, with hover state, active state, ARIA-correct), prominent right CTA in yellow
+- [ ] **Hero**: large centered title, descriptive sub, row of 2-3 OUTLINED PILL buttons (icon + label inside the pill), white background, NOT a solid blue card
+- [ ] **Card**: white bg, soft shadow, generous padding (24-32px), small ROUNDED-SQUARE icon block at left-top (40-48px square, monochrome navy bg, white icon glyph), title + description right
+- [ ] **Accordion (CRITICAL)**: SINGLE-OPEN by default. Open header: solid navy background, white text, white chevron-up. Closed header: white bg, navy text, navy chevron-down inside small gray circle. Body: gray text, well-spaced (line-height 1.6), bold keywords. Animation: max-height transition + chevron rotation, 200ms ease, gated on `prefers-reduced-motion`. Multi-open available as opt-in (`multiple` prop) but NOT the default.
+- [ ] **Footer**: thin yellow accent line at top, navy bar, white text, three-column layout (stacks on mobile)
+- [ ] **Inputs**: white bg, soft border, navy focus ring, generous padding. Search input has rounded shape matching the buttons.
+- [ ] **Section**: lavender-tinged off-white background section wrapping white card content
+- [ ] All animations gated on `prefers-reduced-motion`. Match demoanaf "active scale 0.97 on press" + "hover lift" patterns where relevant.
+- [ ] After every theme.css edit, RUN `bun run --cwd packages/ui scripts/sync-theme.ts` BEFORE building. Bundle uses the TS string mirror; un-synced edits never reach `dist/`.
 
-- [ ] New workspace package `@onegov/api-clients`
-- [ ] `anaf-api/` module: `lookupCui(cui: string): Promise<CompanyInfo>` — wraps `https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva`. Same response normalization as `demoanaf.ro/gateway/src/anaf/`. Reuse the demoanaf code where reasonable (copy with attribution; don't take a runtime dep on the gateway).
-- [ ] `bnr-api/`: `getRates(): Promise<ExchangeRates>` — XML feed + parser
-- [ ] `vies-api/`: `validateVat(country, vat): Promise<VatStatus>`
-- [ ] Each client tree-shakeable; no implicit shared dependency
-- [ ] Native `fetch` only. No undici or other deps.
-- [ ] Tests: each client has a unit test against captured response fixtures
-- [ ] Used by the extension's render engine for live data + by demoanaf.ro (after this lands, demoanaf can switch to consuming the published `@onegov/api-clients`)
+### B. `packages/site-data/` workspace — Zod schema + first hand-curated site
 
-### C. `packages/extension/src/render-engine/` — generic renderer
+- [ ] New workspace `@onegov/site-data` with Zod-typed schema in `src/schema.ts` defining:
+  - `SiteMap`: domain, branding (logo URL or inline SVG, full Romanian name, short label, accent color), pages map, url_patterns, primary navigation
+  - `SitePage`: template (one of: home / form / list / detail / dashboard / search / document / external / error / empty), title, sub, regions
+  - `Branding`: required on every SiteMap — `logo: { src: string; alt: string }`, `fullName: string` (Romanian), `shortLabel: string` (acronym OK), `accentColor: string` (hex; defaults to `--gov-primary` if absent)
+  - Page templates have explicit field shapes — see "Schema sketch" below
+- [ ] `packages/site-data/data/anaf.ro.json` — hand-curated for v0.3.0:
+  - `branding`: ANAF logo (use `https://www.anaf.ro/anaf/internet/ANAF/themes/anaf/img/logo.png` URL, OR pre-fetch + inline as base64 — fetch one and inline if it's < 20 KB), `fullName: "Agenția Națională de Administrare Fiscală"`, `shortLabel: "ANAF"`, `accentColor: "#003B73"`
+  - At least 6 pages: home, cui-lookup, calendar-fiscal, servicii-online, asistenta-fiscala, info-publice
+- [ ] `packages/site-data/scripts/validate.ts` — validates every JSON against Zod schema. Build fails if any pack is malformed.
 
-- [ ] `lookup(url: URL): SitePage | null` — pure function over the bundled site-data
-- [ ] `RenderEngine` Preact component — picks the right template per `page.template` value
-- [ ] **8-10 page templates**, each a small Preact component composed from `@onegov/ui`:
-  - **`home`** — hero + service grid + secondary nav (anaf.ro homepage shape)
-  - **`form`** — title + description + form fields + submit (CUI lookup, declaration submission)
-  - **`list`** — title + filters + paginated list of items (search results, news list)
-  - **`detail`** — title + metadata + sections + related items (company detail page)
-  - **`dashboard`** — title + KPI cards + sections (e.g. SPV inbox summary)
-  - **`search`** — search box + filters + results (CAEN code browser, person search)
-  - **`document`** — formatted long-form content (Monitorul Oficial entry, info publice page)
-  - **`external`** — "this section lives on the source site, click through" (deep links we don't take over yet)
-  - **`error`** — fallback when something goes wrong (graceful, with "afișează site original" CTA)
-  - **`empty`** — when site data exists but page is intentionally blank (e.g. WIP)
-- [ ] All templates accept `{ page: SitePage; runtime: SiteRuntime }`. No template parses live DOM.
-- [ ] Live data hooks: each template MAY call API clients via injected services (e.g. `services.anaf.lookupCui(cui)`). Calls happen at render time only when user requests them, not at mount.
-- [ ] Form bridging: forms POST to known endpoints via `fetch(endpoint, { credentials: 'include' })` — uses the user's session cookies for the gov site, no DOM form bridging.
+### C. `packages/api-clients/` workspace — extracted from demoanaf
 
-### D. `packages/crawler/` — the offline mapper (foundation only in v0.3.0)
+- [ ] `@onegov/api-clients` workspace
+- [ ] `anaf-api/` module: `lookupCui(cui: string): Promise<CompanyInfo>` wrapping `https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva`. Native `fetch`. Reference adaptation source: `/Users/danime/Sites/demoanaf.ro/demoanaf.ro/gateway/src/anaf/`.
+- [ ] `bnr-api/` module: `getRates()` for currency display
+- [ ] `vies-api/` module: `validateVat()` for EU VAT
+- [ ] Tree-shakeable; tested with captured response fixtures
 
-For v0.3.0, ship the crawler SKELETON + a single working anaf.ro crawl. Templates / Tier 2 / AI-assisted classification come in v0.3.1+.
+### D. `packages/extension/src/main/` — new content script (replaces `content/`)
 
-- [ ] New workspace package `@onegov/crawler`
-- [ ] Node-only (NEVER bundled with extension). Uses Playwright + (optionally) Claude API.
-- [ ] `bun run --cwd packages/crawler crawl --site anaf.ro` — visits the site, follows nav links, extracts what it can
-- [ ] First-pass output is rough; iterate to match the hand-curated `anaf.ro.json` shape
-- [ ] Output written to `packages/site-data/<domain>.json` (overwrites the hand-curated file once crawler quality is good enough — for v0.3.0, leave the hand-curated file intact)
-- [ ] Diff tool: `bun run --cwd packages/crawler diff --site anaf.ro` — compares latest crawl vs committed site-data, prints structured diff for human review
-- [ ] CI integration deferred to v0.3.1
+- [ ] DELETE the old `packages/extension/src/content/` AND `packages/extension/src/sites/` directories. They're tied to the rejected shadow-root architecture.
+- [ ] DELETE `packages/extension/src/loader/`. No splash needed — page replacement is fast enough that a splash is overkill, and the institution-branded splash idea is moot once the institution branding lives in the rendered header.
+- [ ] New `packages/extension/src/main/index.ts`:
+  ```ts
+  // 1. Skip if extension disabled per chrome.storage.local
+  // 2. Skip if no site-data for current hostname
+  // 3. Wait for document.body (DOMContentLoaded if not yet ready)
+  // 4. Read context from original DOM (cookies, URL params, any inline tokens like CSRF — do this BEFORE replacing body)
+  // 5. document.body.replaceChildren(appRoot) — THE REPLACEMENT
+  // 6. Inject our scoped CSS via <style> in document.head
+  // 7. Render the page via render-engine
+  // 8. Subscribe to chrome.storage.onChanged for LIVE updates (R3)
+  //    - density change → re-render with new density prop (NEW prop object, not in-place mutation)
+  //    - extensionEnabled false → reload the page so original re-renders untouched
+  ```
+- [ ] No shadow root. No hide-original style. No "show original" toggle in the UI.
+- [ ] Manifest content_scripts: single entry, `run_at: "document_idle"`, matches the bundled site-data domains. Drop the `document_start` split.
 
-### E. Extension content script rewrite
+### E. `packages/extension/src/render-engine/` — page templates
 
-- [ ] `packages/extension/src/content/index.ts` simplified — no `extractContext`, no shape evaluation, no `SerializableDoc`. The dispatcher just:
-  1. mountLoader (with branding from site-data)
-  2. waitForBody
-  3. lookupPage(url)
-  4. If null → loader.abort('Această pagină nu este în harta noastră încă'). Original page stays visible.
-  5. Mount shadow + render engine
-  6. Wire density + showOriginal storage subscriptions
-  7. Done
-- [ ] All v0.2 site-module files (`packages/extension/src/sites/anaf.ro/{App,Home,Cui,bridge,context,nav}.tsx`) deleted. Replaced by render engine + site-data.
-- [ ] `packages/extension/src/sites/registry.ts` becomes a single function: `hasSiteData(hostname: string): boolean` — used by the content script's main() to decide if this domain is opted-in.
-- [ ] `manifest.json` content_scripts unchanged (still split: anaf at document_start, others at document_idle with no-op).
+- [ ] `lookup(url: URL): SitePage | null` — pure function over bundled site-data
+- [ ] `RenderEngine` Preact component picks the template per `page.template`
+- [ ] **8 page templates** composed from rewritten `@onegov/ui`:
+  - **`home`** (R1, R2): institution header (logo + full name + nav pills) → centered hero with title + sub + 2-3 outlined-pill CTAs → "Cum funcționează?" or "Servicii" section with icon-square cards in a 4-up grid → "Întrebări frecvente" single-open accordion → footer with yellow accent line + 3 columns
+  - **`form`**: institution header → form card (label + input + helper) → primary submit (yellow pill) + secondary cancel (outline pill) → results panel (when submitted)
+  - **`list`** + **`detail`** + **`dashboard`** + **`search`** + **`document`** + **`external`** + **`error`** + **`empty`** — all with the institution header on top and yellow-accent footer at bottom
+- [ ] `external` template handles "În curând — deschide pe <institution>.ro" with working link (R4 — no click should ever do nothing)
+- [ ] Every template renders the institution's `branding.logo` + `branding.fullName` + `branding.shortLabel` in the header. The "onegov" wordmark appears ONLY as a tiny "Optimizat de [logo]" line in the footer, NEVER in the header.
 
-### F. Quality / process improvements (the gap owner flagged)
+### F. Popup rewrite — minimal launcher (no toggle drama)
 
-- [ ] **Visual regression tests**: new `packages/e2e/` workspace using Playwright's `chromium.launchPersistentContext({ headless: false, args: ['--load-extension=PATH'] })`. For v0.3.0, ship one test: load extension, navigate to a synthetic anaf.ro fixture (or to the real anaf.ro), screenshot, fail if pixel diff > threshold against committed baseline. This catches "footer renders above hero" before merge.
-- [ ] **Composition tests** in `packages/ui/`: render every page template (home/form/list/detail/etc.) with synthetic site-data and assert layout doesn't break. Catches AppShell-style bugs caught only by visual inspection today.
-- [ ] **theme.css ↔ theme.ts sync gate**: pre-commit hook (or CI step) that runs `sync-theme` and fails if `theme.ts` was committed without the matching `theme.css` change. The 3-merge bug from v0.2.x must not recur.
+- [ ] Replace popup with a tiny launcher:
+  - Status: "Activ pe <institution>.ro" / "Site nesuportat" / "Domeniu suspect"
+  - Single primary toggle: "Aplică interfața onegov" (default ON). When toggled OFF, sends a message to the content script that does `location.reload()` so the original page renders untouched. R3 satisfied (live, but reload-based since R6 makes mid-flight switching impossible after replacement).
+  - Density chip: Minimal / Simplu / Bogat (instant — content script subscribes to storage, re-renders with new density prop using a NEW object reference so Preact does the diff)
+  - Footer: version + GitHub link. NO persona pill. NO show-original toggle.
 
-### G. Schema sketch — what `anaf.ro.json` looks like
+### G. Live toggles — wire it correctly (R3)
+
+The v0.2 bug was: storage subscription mutated `runtime.showingOriginal` in place; Preact short-circuits on reference equality. **Fix pattern:**
+- Pass per-render values as PRIMITIVE props on the App component (e.g. `<App density={current.density} ctx={ctx} />`)
+- On storage change, compute new props from new values and call `preactRender(<App density={NEW} />)` again
+- NEVER mutate an object that's already been passed as a prop
+- Add a smoke test that asserts toggling density via storage actually re-renders with the new prop value
+
+### H. `packages/crawler/` skeleton (Node-only, foundation for v0.3.x)
+
+- [ ] `@onegov/crawler` workspace (Node-only, never bundled)
+- [ ] CLI: `bun run --cwd packages/crawler crawl --site anaf.ro` — uses Playwright to visit anaf, extracts pages + branding into the SiteMap shape
+- [ ] First-pass output rough; iterate to match the hand-curated `anaf.ro.json` shape
+- [ ] Diff tool: compare latest crawl vs committed site-data, print structured diff for human review
+- [ ] CI integration deferred to v0.3.1+
+
+### I. `packages/e2e/` — visual regression with `--load-extension`
+
+- [ ] New workspace using Playwright with `chromium.launchPersistentContext({ headless: false, args: ['--disable-extensions-except=PATH', '--load-extension=PATH'] })`
+- [ ] One smoke test for v0.3.0:
+  - Build extension to `dist/extension/`
+  - Launch persistent context with extension loaded
+  - Navigate to `https://www.anaf.ro/anaf/internet/ANAF/`
+  - Wait for body replacement (assert `document.querySelector('#onegov-app')` exists)
+  - Assert ANAF logo is visible (institution branding R1)
+  - Assert no "OG · pe anaf.ro" generic text in the header
+  - Click "Calendar fiscal" card → assert URL changes OR a render-engine page renders
+  - Toggle density chip in popup → assert re-render with new density (R3)
+  - Screenshot for human review
+
+### J. `theme.css` ↔ `theme.ts` sync gate
+
+- [ ] Pre-commit hook OR CI step: runs `sync-theme.ts` and fails if `theme.ts` is out of sync with `theme.css`. The bug from v0.2.x where my CSS edits never reached the bundle MUST not recur.
+
+### K. Cleanup
+
+- [ ] DELETE `packages/extension/src/sites/` (v0.2 site-module pattern is dead per R6)
+- [ ] DELETE `packages/extension/src/loader/` (no splash in v0.3 — the page is replaced fast enough that a splash is overkill)
+- [ ] DELETE all v0.1 / v0.2 references in CLAUDE.md / SPEC.md / docs to the shadow-root + hide-original-style approach. Add comments where the new architecture diverges so future readers understand.
+- [ ] Update `docs/ARCHITECTURE.md` with the page-replacement diagram
+- [ ] Append entries to `docs/LOG.md` for this work
+
+---
+
+## Schema sketch
 
 ```json
 {
   "version": "0.3.0",
   "domain": "anaf.ro",
-  "crawledAt": "2026-05-03T10:00:00Z",
-  "brand": {
-    "label": "ANAF",
+  "branding": {
+    "logo": { "src": "data:image/png;base64,...", "alt": "ANAF logo" },
     "fullName": "Agenția Națională de Administrare Fiscală",
-    "color": "#003B73",
-    "logoUrl": "https://www.anaf.ro/anaf/internet/ANAF/themes/anaf/img/logo.png"
+    "shortLabel": "ANAF",
+    "accentColor": "#003B73"
+  },
+  "navigation": {
+    "primary": [
+      { "label": "Despre ANAF", "href": "/despre-anaf" },
+      { "label": "Asistență Contribuabili", "href": "/asistenta-contribuabili" },
+      { "label": "Servicii Online", "href": "/servicii-online" },
+      { "label": "Info Publice", "href": "/info-publice" }
+    ],
+    "primary_cta": { "label": "Verifică un CUI", "href": "/cui-lookup", "icon": "search" }
   },
   "pages": {
     "/": {
       "template": "home",
       "title": "Bun venit la ANAF",
-      "subtitle": "Servicii fiscale online",
-      "hero": {
-        "primary_action": {
-          "kind": "search",
-          "label": "Verifică un CUI",
-          "placeholder": "Introdu un CUI sau un nume de firmă",
-          "submit_to": "/cui-lookup"
-        }
-      },
-      "services": [
-        { "title": "Calendar fiscal", "icon": "calendar", "href": "/calendar-fiscal", "description": "Termenele importante și obligațiile lunii" },
-        { "title": "Servicii online", "icon": "external", "href_external": "https://www.anaf.ro/anaf/internet/ANAF/servicii_online", "description": "SPV, declarații, plăți" },
-        { "title": "e-Factura", "icon": "invoice", "href": "/efactura", "description": "Trimitere și verificare" }
+      "sub": "Servicii fiscale online — verifică o firmă, găsește un serviciu, planifică-ți obligațiile.",
+      "hero_actions": [
+        { "label": "Verifică un CUI", "href": "/cui-lookup", "icon": "search", "variant": "primary" },
+        { "label": "Calendar fiscal", "href": "/calendar-fiscal", "icon": "calendar", "variant": "secondary" }
       ],
-      "secondary_links": [
-        { "title": "Despre ANAF", "href_external": "..." },
-        { "title": "Asistență", "href_external": "..." }
+      "sections": [
+        {
+          "kind": "icon_card_grid",
+          "eyebrow": "CUM TE PUTEM AJUTA",
+          "title": "Servicii principale",
+          "items": [
+            { "icon": "edit", "title": "Verifică un CUI", "description": "Confirmă rapid o firmă plătitoare de TVA folosind CUI/CIF-ul.", "href": "/cui-lookup" },
+            { "icon": "calendar", "title": "Calendar fiscal", "description": "Termenele importante și obligațiile lunii curente.", "href": "/calendar-fiscal" },
+            { "icon": "external", "title": "Servicii online", "description": "SPV, declarații, plăți și formulare electronice.", "href": "/servicii-online" }
+          ]
+        },
+        {
+          "kind": "faq_accordion",
+          "eyebrow": "ÎNTREBĂRI FRECVENTE",
+          "title": "Răspunsuri la întrebări comune",
+          "items": [
+            { "id": "spv", "question": "Cum mă autentific în SPV?", "answer": "..." },
+            { "id": "cui", "question": "Ce este un CUI?", "answer": "..." }
+          ]
+        }
       ]
     },
     "/cui-lookup": {
       "template": "form",
       "title": "Verifică un CUI",
+      "sub": "Introdu CUI-ul firmei pentru a confirma statutul de plătitor de TVA.",
       "form": {
-        "fields": [{ "name": "cui", "label": "CUI / CIF", "type": "text", "required": true, "pattern": "^\\d{1,10}$" }],
-        "submit": { "kind": "api_call", "client": "anaf", "method": "lookupCui", "args_from_fields": ["cui"] },
+        "fields": [{ "name": "cui", "label": "CUI / CIF", "type": "text", "required": true, "pattern": "^\\d{1,10}$", "helper": "Ex: 14841555" }],
+        "submit_label": "Caută CUI",
+        "submit_handler": { "kind": "api_call", "client": "anaf", "method": "lookupCui", "args_from": ["cui"] },
         "result_template": "company_card"
       }
     },
     "/calendar-fiscal": { "template": "list", "title": "Calendar fiscal", "data_source": { "kind": "static", "items_inline": [...] } },
-    "/efactura": { "template": "external", "title": "e-Factura", "external_url": "https://www.anaf.ro/anaf/internet/ANAF/servicii_online" }
+    "/external": { "template": "external", "title": "În curând", "external_url": "https://www.anaf.ro/anaf/internet/ANAF/asistenta_contribuabili" }
   },
   "url_patterns": [
     { "match": "^/$", "page": "/" },
     { "match": "^/anaf/internet/ANAF/?$", "page": "/" },
     { "match": "^/anaf/internet/ANAF/acasa(/!ut/.*)?$", "page": "/" },
-    { "match": "^/anaf/internet/ANAF/cui.*", "page": "/cui-lookup" }
-  ],
-  "navigation": {
-    "primary": [
-      { "title": "Acasă", "href": "/" },
-      { "title": "Servicii", "href": "/" },
-      { "title": "Calendar", "href": "/calendar-fiscal" }
-    ]
-  }
+    { "match": "^/anaf/internet/ANAF/cui.*", "page": "/cui-lookup" },
+    { "match": ".*", "page": "/external" }
+  ]
 }
 ```
 
-The render engine matches `location.pathname` against `url_patterns`, picks the page, picks the template by `page.template`, renders.
-
 ---
 
-## Hard rules
+## Hard rules (operational)
 
-- `git status --porcelain` MUST return empty before reporting DONE.
+- **CWD-DRIFT WARNING (third recurrence prevention)**: before EVERY git commit, run `pwd && git branch --show-current` in the same Bash call. Confirm pwd ends in `.claude/worktrees/agent-xxxxx` and branch is `job/v0.3-prebaked/architecture-rewrite`. If not, `cd` back. Two prior workers cost recovery time.
+- `git status --porcelain` MUST be empty before reporting DONE.
 - `bun pm ls 2>&1 | grep -ci node-forge` must return `0`.
-- The five invariants per CLAUDE.md still apply (with the v0.2 documented relaxations).
 - TypeScript strict, no `any`. MAX 500 lines per file.
-- Closed shadow root only.
-- No new manifest permissions.
-- Bundle: extension `content.js` gz ≤ 80 KB after this lands. Site-data JSON adds maybe 50-200 KB to extension size; that's fine — total package ≤ 2 MB cap.
+- No new manifest permissions. No new dependencies (Playwright in `packages/e2e` is dev-only).
+- Bundle: `content.js` (now `main.js`) gz ≤ 80 KB. Total dist (with bundled site-data + inlined ANAF logo) ≤ 2 MB.
 - Conventional Commits, no `Co-Authored-By` ever.
-- **theme.css → theme.ts sync** is mandatory after every theme.css edit. Add a pre-commit guard.
-- ALL site-data files validated against Zod schema at build time.
-
-## CWD-DRIFT WARNING (third recurrence prevention)
-The Bash tool's CWD persists across calls. After `cd /Users/danime/Sites/onegov.ro` ANY git command runs against MAIN. Before EVERY commit, run `pwd && git branch --show-current` in the same Bash call. Confirm pwd ends in `.claude/worktrees/agent-xxxxx` and branch is `job/v0.3-prebaked/architecture-rewrite`. If not, `cd` back. Two prior workers cost recovery time on this.
+- After every theme.css edit: run sync-theme.
 
 ## What you will report back
 
@@ -252,29 +304,26 @@ After completion, write `jobs/v0.3-prebaked/DONE-01-architecture-rewrite.md` per
 
 In the summary:
 1. Branch + commit hashes
-2. `pwd && git status --porcelain` (must be empty + must show your worktree)
+2. `pwd && git status --porcelain` (empty + correct worktree)
 3. Tail of `bun run check`, `bun run test`, `bun run build`
-4. background.js + content.js + popup.js gz sizes
-5. Total dist/extension size with bundled site-data (must stay < 2 MB)
-6. node-forge count (must be 0)
-7. **3-4 sentence description of what visiting anaf.ro looks like NOW** — be precise
-8. Manual smoke result if your environment can drive Chrome with --load-extension
-9. List of pages defined in `anaf.ro.json` (proves the site map exists)
-10. Confirmation that the visual-regression Playwright test runs and passes
-11. Deviations + justification
+4. Bundle gz sizes + total dist size
+5. node-forge count (must be 0)
+6. **Screenshot of the rendered anaf.ro homepage** via the `packages/e2e` Playwright test (the loaded extension visually replaces the page; ANAF logo + full Romanian name visible in the header; pill buttons; fara-hartie-style cards; accordion)
+7. Click `Calendar fiscal` → confirm it navigates to a rendered page (not no-op) — screenshot
+8. Toggle density chip in popup → confirm live re-render — screenshot before+after
+9. Confirmation that v0.2 shadow-root + hide-original code is DELETED, not just deprecated
+10. Confirmation that R1 (ANAF logo + full name in header) + R2 (fara-hartie patterns) + R3 (live toggles) + R4 (every click works) + R5 (design system rewritten) + R6 (page replaced, no shadow root) are ALL satisfied
+11. Deviations + justification (if any rule can't be fully satisfied, FLAG it loudly)
 12. Files changed count
 
-Be terse. Visuals matter most.
+Be honest. Owner has been burned by 4 broken builds. If something doesn't work, say so before merging.
 
 ---
 
 ## Out of scope
 
-- Other 5 ship-list sites (dgep, portal.just, ghiseul, rotld, itmcluj) — they get their own site-data files in subsequent v0.3.x tasks
-- Crawler quality beyond skeleton + one working site (v0.3.1+)
-- Tier 2 template-based crawl (v0.3.2+)
-- Tier 3 AI fallback (v0.4)
-- Authentication flows (CEI/SPV/OAuth) — render-original-page passthrough for v0.3, deep integration in v0.4
-- Real-time data dashboards (v0.3 calendar fiscal can be a static items list; live becomes v0.3.x)
-- Persona inference removal — already obsolete; just delete the persona module if it's still imported
-- Popup redesign beyond what's already done
+- Other 5 ship-list sites (dgep, portal.just, ghiseul, rotld, itmcluj) — separate v0.3.x tasks once anaf.ro is approved
+- Crawler quality beyond skeleton + one working anaf.ro extraction (v0.3.1+)
+- Authentication flows (CEI/SPV/OAuth) — v0.4
+- Form bridging beyond the CUI-lookup proof — separate per-form tasks
+- Mid-flight density switching that requires a page reload — acceptable for v0.3.0 if the page-replacement architecture makes mid-flight impractical (document the tradeoff)

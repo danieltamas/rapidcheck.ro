@@ -4,6 +4,94 @@ A Manifest V3 WebExtension that transforms Romanian government portals into a un
 
 **See `SPEC.md` for the full v0.1 execution plan and `SITES_COVERAGE.md` for the verified site inventory.** This file is the operating manual — those are the product spec.
 
+---
+
+## ⚠️ READ FIRST — owner feedback journal
+
+`docs/LOG.md` ends with a chronological **OWNER FEEDBACK JOURNAL** capturing every directional shift the owner has called for, in their own words. **Read it before any UI work.** Five strategic pivots in 48 hours; the rules below (R1-R6) are the distilled outcome. Don't reinvent rejected approaches.
+
+## ⚠️ NON-NEGOTIABLE PRODUCT RULES (added 2026-05-03)
+
+These rules are owner-mandated. Any UI work that violates one will be rejected on sight, regardless of test results, bundle size, or "but the architecture is correct".
+
+### R1. PRESERVE INSTITUTION BRANDING
+
+The extension makes broken gov sites WORK. It DOES NOT replace them with a generic "onegov" UI.
+
+Every site reskin MUST keep:
+- **The institution's official logo** (visible in the header — not just as a small icon, as the primary identity element). Pre-bundle the logo per-site or fetch from the source's static assets at install time.
+- **The institution's full official name** in the visible header, in Romanian (e.g. `Agenția Națională de Administrare Fiscală`, NOT just "ANAF"). Acronym is acceptable as the short label after the name.
+- **The institution's accent color** if they have one (ANAF: navy/blue, ghișeul.ro: green/yellow). Use it as the primary brand color in headers, hero, primary CTAs.
+
+Onegov branding is reduced to a SMALL byline element ("Optimizat de [onegov logo]" or similar), never the headline. The user came for ANAF, not for us. We're a service layer, not a competing brand.
+
+### R2. DESIGN SYSTEM MIRRORS fara-hartie.gov.ro
+
+`fara-hartie.gov.ro` is the canonical reference for Romanian gov UX patterns. Every component we ship must match the visual + interaction language demonstrated there. Concrete patterns to mirror:
+
+- **Header**: navy blue strip (PANTONE 280C, `#1a4598` or similar), institution logo left + wordmark, primary nav as PILLS (very rounded, hover state, ARIA-correct), prominent right-aligned CTA in **yellow** (RO flag yellow, `#FFCD00`-ish) for the most-important action
+- **Hero**: large centered title, descriptive sub, a row of OUTLINED PILL buttons for the 2-3 primary actions (icon + label inside the pill) — NOT solid cards, NOT a flat hero block
+- **Section cards**: white background, soft shadow, generous padding, ROUNDED-SQUARE icon block at left (small, monochrome blue background with white icon glyph), title + description right
+- **Accordion (CRITICAL)**: SINGLE-OPEN by default — opening one closes others smoothly. Open header has solid blue background with white chevron-up; closed headers have white background with blue chevron-down in a small gray circle. Body text inside open panel is gray, well-spaced, with bold keywords. Animation: max-height transition + chevron rotation, gated on `prefers-reduced-motion`.
+- **Footer**: thin yellow accent line at top of footer (RO flag colors hint), navy footer bar, white text, three-column or stacked-on-mobile layout
+- **Buttons**: pill-shaped (full-radius), three variants:
+  - `primary`: yellow background, dark text, edit/arrow icon left
+  - `secondary`: white background, blue border + text, icon left
+  - `ghost`: transparent, blue text, hover-only background
+- **Typography**: clean sans-serif (system stack ok, with a custom display font for h1/h2 if available), bold titles, gray body text, generous line-height (1.6 for paragraph)
+- **Color tokens**:
+  - `--gov-primary`: navy blue (institution-specific override possible — ANAF uses near-identical navy)
+  - `--gov-accent`: yellow #FFCD00 (RO flag) for primary CTAs
+  - `--gov-danger`: red #C8102E (RO flag) for destructive/warning
+  - `--gov-surface`: lavender-tinged off-white (`#f5f6fa`) for section backgrounds
+  - White cards on lavender section, navy text, gray secondary text
+
+The existing `@onegov/ui` design system shipped in v0.2 was hand-rolled and DOES NOT MATCH fara-hartie. It needs to be REWRITTEN to mirror fara-hartie patterns before any further site module work happens.
+
+### R3. TOGGLES WORK LIVE — NO PAGE REFRESH
+
+Every storage-backed setting (`extensionEnabled`, `uiDensity`, `showOriginal`, etc.) MUST update the rendered UI WITHOUT requiring a page refresh:
+- Storage subscriptions in the content script must trigger Preact re-renders with NEW prop objects (not in-place mutation of existing runtime refs — Preact short-circuits on reference equality).
+- The popup's primary toggle MUST instantly hide/show the overlay across all open tabs.
+- The status bar's "afișează site original" button MUST instantly switch to minimal mode.
+- The status bar's "Activează interfața" button (in minimal mode) MUST instantly restore the overlay.
+- No "I have to refresh the page" — ever. If a worker ships a non-live toggle, that's a blocker.
+
+### R4. EVERY NAV / CARD CLICK MUST DO SOMETHING
+
+A user clicking "Calendar fiscal" on the rendered home page MUST see one of:
+- The corresponding onegov-rendered version of that page (preferred — it's our value proposition)
+- A clear "În curând — deschide pe `<institution>.ro`" placeholder with a working link to the source page (acceptable when we haven't shipped that page yet)
+
+A click that "does nothing" is a 🔴 blocker. The render engine MUST log a clear console.warn when a click resolves to no-op so the bug is loud.
+
+### R5. THE EXISTING DESIGN SYSTEM (`@onegov/ui` v0.2) NEEDS REWRITING
+
+The 50-component library shipped in v0.2 looks generic and doesn't match fara-hartie. It must be rewritten to match the patterns in R2. This is mandatory before v0.3 site modules can land. Specifically: rewrite Button, Card, Hero, Header, Footer, Accordion, AppShell, NavGrid, Inputs to match fara-hartie. Other components can stay as-is if they're not visually rendered to the user.
+
+### R6. REPLACE THE PAGE — NO SHADOW ROOT, NO "ORIGINAL UNDERNEATH"
+
+The v0.1/v0.2 architecture (closed shadow root + hide-original style + "afișează site original" toggle to peek at the source page) is REJECTED. Owner direction (2026-05-03):
+> *"even the docs say 'preserve the original page underneath' — this is fucking stupid. I DID NOT ASK FOR THIS"*
+
+The new model: **the page IS our UI**. The original DOM is replaced wholesale. No shadow root, no overlay, no "show original" toggle. If a user wants the unmodified gov site, they disable the extension globally or per-site via the popup (same as any other browser extension).
+
+Concretely:
+- Content script at `document_idle` mutates `document.body` to contain ONLY our app root: `document.body.innerHTML = '<div id="onegov-app"></div>'` (or equivalent — `document.body.replaceChildren(appRoot)`).
+- Original `<head>` is kept (so favicon, meta tags, title work) BUT we may need to neutralize their leaked styles by injecting an aggressive CSS reset scoped to `#onegov-app`.
+- Form bridging uses `fetch(originalEndpoint, { method, body, credentials: 'include' })` — cookies/sessions persist on the domain even after body replacement.
+- No `<style id="onegov-hide-original">` injection. No closed shadow root. No `mountShadowHost()`. The renderer mounts directly into the body.
+- Per-site disable: popup primary toggle, when off, makes the content script EXIT EARLY at `document_start` so the original page renders untouched.
+- This is a one-way switch per page load: we either render OUR version (extension enabled + site supported) OR the source's version (extension disabled). No mid-flight toggling.
+
+Invariants update — the v0.1/v0.2 invariants 1+2+5 are SUPERSEDED by this rule:
+- **Invariant 1 (DOM untouched)**: GONE. We replace `<body>` content. The original DOM is data; we don't preserve it.
+- **Invariant 2 (no form data passively read)**: STAYS but reframed — forms are read by the user inputting into OUR forms. The original form elements no longer exist after replacement.
+- **Invariant 5 (escape hatch)**: GONE. Per-site disable in popup is the new escape hatch (requires page reload, not toggle-on-the-fly).
+- **Invariants 3 (no remote code) + 4 (no third-party network)**: STAY unchanged.
+
+This is a fundamental simplification. The shadow-root and hide-original code paths shipped in v0.2 must be DELETED, not just "deprecated".
+
 > **v0.1 scope: Chrome desktop only.** Firefox parity moves to v0.2. The codebase stays cross-browser-compatible (avoid Chrome-only APIs where alternatives exist) but Firefox packaging, `web-ext`, `addons-linter`, and `browser_specific_settings.gecko` are deferred. v0.1 ships a single `dist/extension/` loaded via `chrome://extensions` → Load unpacked.
 
 ---
