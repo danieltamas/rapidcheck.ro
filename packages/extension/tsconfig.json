@@ -17,5 +17,10 @@
     "src/**/__tests__/**",
     "vite.config.ts"
   ],
-  "references": [{ "path": "../core" }, { "path": "../ui" }]
+  "references": [
+    { "path": "../api-clients" },
+    { "path": "../core" },
+    { "path": "../site-data" },
+    { "path": "../ui" }
+  ]
 }

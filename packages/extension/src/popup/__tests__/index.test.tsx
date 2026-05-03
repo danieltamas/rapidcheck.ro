@@ -5,8 +5,7 @@
  *   - statusPillFor() — pure mapping from DomainStatus → pill metadata
  *   - Popup renders the branded header + primary toggle + density chip
  *     + site status + footer
- *   - Primary toggle writes both `extensionEnabled` AND legacy `showOriginal`
- *     (back-compat with the existing content-script listener)
+ *   - Primary toggle writes `extensionEnabled`
  *   - Density chip shows three options with the current selection highlighted
  *   - Picking a density writes `uiDensity` to chrome.storage.local
  *   - Site row shows the current eTLD+1 + variant from get-status reply
@@ -158,7 +157,7 @@ describe('Popup — primary toggle', () => {
     expect(cb?.getAttribute('aria-checked')).toBe('true');
   });
 
-  it('writes both extensionEnabled (true) and showOriginal (false) when on', async () => {
+  it('writes extensionEnabled when toggled', async () => {
     // Toggle off then back on so we see the storage write deterministically.
     const cb = document.querySelector('.pop-switch__input') as HTMLInputElement | null;
     expect(cb).not.toBeNull();
@@ -167,25 +166,43 @@ describe('Popup — primary toggle', () => {
     cb.dispatchEvent(new Event('change', { bubbles: true }));
     await new Promise<void>((r) => queueMicrotask(r));
     expect(stub.storage['extensionEnabled']).toBe(false);
-    expect(stub.storage['showOriginal']).toBe(true);
+    expect(document.querySelector('.pop-density')).toBeNull();
 
     cb.checked = true;
     cb.dispatchEvent(new Event('change', { bubbles: true }));
     await new Promise<void>((r) => queueMicrotask(r));
     expect(stub.storage['extensionEnabled']).toBe(true);
-    expect(stub.storage['showOriginal']).toBe(false);
+    expect(document.querySelector('.pop-density')).not.toBeNull();
   });
 });
 
 describe('Popup — density chip (replaces persona pill in v0.2.0)', () => {
+  it('only renders density options while the UI is active', async () => {
+    const cb = document.querySelector('.pop-switch__input') as HTMLInputElement | null;
+    expect(cb).not.toBeNull();
+    if (!cb) return;
+
+    cb.checked = false;
+    cb.dispatchEvent(new Event('change', { bubbles: true }));
+    await new Promise<void>((r) => queueMicrotask(r));
+    expect(document.querySelector('.pop-density')).toBeNull();
+    expect(document.querySelectorAll('.pop-density__option').length).toBe(0);
+
+    stub.fireStorageChanged({
+      extensionEnabled: { newValue: true, oldValue: false },
+    });
+    await new Promise<void>((r) => queueMicrotask(r));
+    expect(document.querySelectorAll('.pop-density__option').length).toBe(3);
+  });
+
   it('renders the three density options', () => {
     const opts = document.querySelectorAll('.pop-density__option');
     expect(opts.length).toBe(3);
     const labels = Array.from(opts).map((el) => el.textContent);
-    expect(labels).toEqual(['Minimal', 'Simplu', 'Bogat']);
+    expect(labels).toEqual(['Esențial', 'Standard', 'Complet']);
   });
 
-  it('marks "Simplu" as the default selection', () => {
+  it('marks the standard density as the default selection', () => {
     const selected = document.querySelector('.pop-density__option--selected');
     expect(selected?.getAttribute('data-density')).toBe('simplu');
     expect(selected?.getAttribute('aria-checked')).toBe('true');
@@ -202,7 +219,7 @@ describe('Popup — density chip (replaces persona pill in v0.2.0)', () => {
 
     // Hint text reflects the new selection.
     const hint = document.querySelector('.pop-density__hint');
-    expect(hint?.textContent).toContain('tot conținutul');
+    expect(hint?.textContent).toContain('detalii extinse');
   });
 
   it('updates the visual selection after click', () => {

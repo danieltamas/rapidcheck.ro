@@ -46,18 +46,23 @@
  */
 
 :host {
-  /* ─── Brand identity (identitate.gov.ro PANTONE 280C) ──────────────── */
-  --onegov-color-primary: #003b73;
-  --onegov-color-primary-hover: #1d4f9b;
-  --onegov-color-primary-active: #002a5a;
-  --onegov-color-primary-soft: #e8eef6;
+  /* ─── Brand identity ──────────────────────────────────────────────── */
+  --onegov-color-primary: #1a4598;
+  --onegov-color-primary-hover: #153a82;
+  --onegov-color-primary-active: #102d68;
+  --onegov-color-primary-soft: #e9eefb;
   --onegov-color-primary-contrast: #ffffff;
+  --onegov-color-accent: #ffcd00;
+  --onegov-color-accent-hover: #ffd633;
+  --onegov-color-accent-active: #e8b900;
+  --onegov-color-accent-soft: #fff7cc;
+  --onegov-color-accent-contrast: #0b1320;
 
   /* ─── Surface tokens ──────────────────────────────────────────────── */
   --onegov-color-bg: #ffffff;
-  --onegov-color-surface: #f7f9fc;
+  --onegov-color-surface: #f5f6fa;
   --onegov-color-surface-elevated: #ffffff;
-  --onegov-color-surface-sunken: #eef2f6;
+  --onegov-color-surface-sunken: #eceff7;
   --onegov-color-text: #1a1a1a;
   --onegov-color-text-strong: #0b1320;
   --onegov-color-muted: #5b6b7d;
@@ -68,14 +73,14 @@
   --onegov-color-overlay-strong: rgba(15, 23, 42, 0.7);
 
   /* ─── Links ───────────────────────────────────────────────────────── */
-  --onegov-color-link: #003b73;
-  --onegov-color-link-hover: #1d4f9b;
+  --onegov-color-link: #1a4598;
+  --onegov-color-link-hover: #153a82;
   --onegov-color-link-visited: #5b3a8a;
 
   /* ─── Status colors ───────────────────────────────────────────────── */
-  --onegov-color-danger: #b3261e;
-  --onegov-color-danger-hover: #8e1e18;
-  --onegov-color-danger-soft: #fbeaea;
+  --onegov-color-danger: #c8102e;
+  --onegov-color-danger-hover: #9f0d25;
+  --onegov-color-danger-soft: #fde8ec;
   --onegov-color-success: #1f7a3a;
   --onegov-color-success-hover: #18602e;
   --onegov-color-success-soft: #e7f4ec;
@@ -232,8 +237,8 @@
   --onegov-z-max: 9999;
 
   /* ─── Focus / accessibility ───────────────────────────────────────── */
-  --onegov-focus-ring: 2px solid #1d4f9b;
-  --onegov-focus-ring-color: #1d4f9b;
+  --onegov-focus-ring: 2px solid #1a4598;
+  --onegov-focus-ring-color: #1a4598;
   --onegov-focus-ring-width: 2px;
   --onegov-focus-offset: 2px;
   --onegov-target-size: 44px;
@@ -878,43 +883,47 @@
 /* =================================================================== */
 
 .onegov-card {
-  border: 1px solid var(--onegov-color-border);
+  border: 1px solid rgba(26, 69, 152, 0.1);
   border-radius: var(--onegov-radius-large);
-  padding: var(--onegov-spacing-2x);
-  background: var(--onegov-color-bg);
-  box-shadow: var(--onegov-shadow);
+  padding: var(--onegov-sp-6);
+  background: var(--onegov-color-surface-elevated);
+  box-shadow: 0 10px 28px rgba(16, 45, 104, 0.08);
   margin: 0 0 var(--onegov-spacing-2x);
+  color: var(--onegov-color-text);
+  transition:
+    border-color var(--onegov-duration-base) var(--onegov-ease-standard),
+    box-shadow var(--onegov-duration-base) var(--onegov-ease-standard),
+    transform var(--onegov-duration-base) var(--onegov-ease-standard);
 }
 .onegov-card__title {
-  margin: 0 0 var(--onegov-spacing);
+  margin: 0 0 var(--onegov-sp-2);
   font-size: var(--onegov-font-size-h3);
+  line-height: var(--onegov-lh-snug);
   color: var(--onegov-color-primary);
 }
 .onegov-card--premium {
-  border: 1px solid var(--onegov-color-neutral-200);
-  border-radius: var(--onegov-radius-lg);
-  padding: var(--onegov-sp-6);
-  background: var(--onegov-color-bg);
-  box-shadow: var(--onegov-shadow-sm);
+  border: 1px solid rgba(26, 69, 152, 0.12);
+  border-radius: var(--onegov-radius-large);
+  padding: var(--onegov-sp-7);
+  background: var(--onegov-color-surface-elevated);
+  box-shadow: 0 12px 34px rgba(16, 45, 104, 0.1);
   margin: 0 0 var(--onegov-sp-5);
-  transition: box-shadow var(--onegov-duration-base) var(--onegov-ease-standard);
 }
-.onegov-card--premium:hover { box-shadow: var(--onegov-shadow-md); }
+.onegov-card--premium:hover {
+  border-color: rgba(26, 69, 152, 0.2);
+  box-shadow: 0 16px 42px rgba(16, 45, 104, 0.14);
+}
 .onegov-card--interactive {
   cursor: pointer;
-  transition:
-    transform var(--onegov-duration-150) var(--onegov-ease-standard),
-    box-shadow var(--onegov-duration-150) var(--onegov-ease-standard),
-    border-color var(--onegov-duration-150) var(--onegov-ease-standard);
 }
 .onegov-card--interactive:hover {
   transform: translateY(-2px);
-  box-shadow: var(--onegov-shadow-md);
-  border-color: var(--onegov-color-border-strong);
+  box-shadow: 0 16px 42px rgba(16, 45, 104, 0.14);
+  border-color: rgba(26, 69, 152, 0.22);
 }
 .onegov-card--interactive:active {
   transform: translateY(0) scale(0.99);
-  box-shadow: var(--onegov-shadow-sm);
+  box-shadow: 0 8px 24px rgba(16, 45, 104, 0.1);
 }
 .onegov-card--media { padding: 0; overflow: hidden; }
 .onegov-card__media {
@@ -927,15 +936,28 @@
 .onegov-card__body { padding: var(--onegov-sp-5); }
 .onegov-card__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--onegov-sp-3);
   padding: var(--onegov-sp-4) var(--onegov-sp-5);
-  border-bottom: 1px solid var(--onegov-color-neutral-100);
+  border-bottom: 1px solid rgba(26, 69, 152, 0.08);
 }
 .onegov-card__footer {
   padding: var(--onegov-sp-4) var(--onegov-sp-5);
-  border-top: 1px solid var(--onegov-color-neutral-100);
-  background: var(--onegov-color-neutral-50);
+  border-top: 1px solid rgba(26, 69, 152, 0.08);
+  background: var(--onegov-color-surface);
+}
+.onegov-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: var(--onegov-radius-large);
+  background: var(--onegov-color-primary);
+  color: var(--onegov-color-primary-contrast);
+  font-weight: var(--onegov-fw-bold);
+  box-shadow: 0 8px 20px rgba(26, 69, 152, 0.18);
 }
 
 /* =================================================================== */
@@ -1438,6 +1460,18 @@
   color: var(--onegov-color-primary);
   flex: 1 1 auto;
 }
+.onegov-modal__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: var(--onegov-radius-full);
+  background: var(--onegov-color-danger-soft);
+  color: var(--onegov-color-danger);
+  font-weight: var(--onegov-fw-bold);
+}
 .onegov-modal__close {
   background: transparent;
   border: 0;
@@ -1462,6 +1496,14 @@
   justify-content: flex-end;
   gap: var(--onegov-sp-3);
   background: var(--onegov-color-surface);
+}
+.onegov-modal--danger,
+.onegov-modal--error {
+  border: 1px solid var(--onegov-color-danger-soft);
+}
+.onegov-modal--danger .onegov-modal__title,
+.onegov-modal--error .onegov-modal__title {
+  color: var(--onegov-color-danger);
 }
 
 .onegov-popover {
@@ -1531,9 +1573,14 @@
   color: var(--onegov-color-text-strong);
   cursor: pointer;
   text-align: left;
-  transition: background var(--onegov-duration-fast) var(--onegov-ease-standard);
+  transition:
+    background var(--onegov-duration-fast) var(--onegov-ease-standard),
+    color var(--onegov-duration-fast) var(--onegov-ease-standard);
 }
 .onegov-accordion-item__trigger:hover { background: var(--onegov-color-surface); }
+.onegov-accordion-item__trigger--open {
+  background: var(--onegov-color-surface);
+}
 .onegov-accordion-item__chevron {
   flex: 0 0 auto;
   display: inline-flex;
@@ -1543,9 +1590,28 @@
   transform: rotate(180deg);
 }
 .onegov-accordion-item__panel {
-  padding: 0 var(--onegov-sp-5) var(--onegov-sp-5);
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
   color: var(--onegov-color-text);
   font-size: var(--onegov-fs-md);
+  opacity: 0;
+  transition:
+    grid-template-rows var(--onegov-duration-300) var(--onegov-ease-emphasized),
+    opacity var(--onegov-duration-base) var(--onegov-ease-standard);
+}
+.onegov-accordion-item__panel--open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.onegov-accordion-item__panel-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 var(--onegov-sp-5);
+  transition: padding var(--onegov-duration-300) var(--onegov-ease-emphasized);
+}
+.onegov-accordion-item__panel--open .onegov-accordion-item__panel-inner {
+  padding: 0 var(--onegov-sp-5) var(--onegov-sp-5);
 }
 
 .onegov-tabs {

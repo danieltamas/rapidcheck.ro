@@ -6,6 +6,8 @@
   "files": [],
   "references": [
     { "path": "./packages/core" },
+    { "path": "./packages/site-data" },
+    { "path": "./packages/api-clients" },
     { "path": "./packages/ui" },
     { "path": "./packages/extension" }
   ]

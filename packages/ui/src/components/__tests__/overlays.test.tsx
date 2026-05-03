@@ -99,6 +99,31 @@ describe('Modal', () => {
     );
     expect(root.querySelector('.onegov-modal__footer button')?.textContent).toBe('OK');
   });
+
+  it('applies danger tone affordance when requested', () => {
+    const root = mountInto();
+    render(
+      <Modal open onClose={() => {}} title="Problem" tone="danger">
+        body
+      </Modal>,
+      root,
+    );
+    expect(root.querySelector('.onegov-modal--danger')).not.toBeNull();
+    expect(root.querySelector('.onegov-modal__status')?.textContent).toBe('!');
+    expect(root.querySelector('[role="dialog"]')?.getAttribute('data-tone')).toBe('danger');
+  });
+
+  it('maps error boolean to error tone', () => {
+    const root = mountInto();
+    render(
+      <Modal open onClose={() => {}} error>
+        body
+      </Modal>,
+      root,
+    );
+    expect(root.querySelector('.onegov-modal--error')).not.toBeNull();
+    expect(root.querySelector('[role="dialog"]')?.getAttribute('data-tone')).toBe('error');
+  });
 });
 
 describe('Popover', () => {

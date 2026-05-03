@@ -13,7 +13,7 @@
  *   │  Aplică interfața onegov   ●━━━━○   │   primary on/off toggle
  *   │  comutator principal                │
  *   ├─────────────────────────────────────┤
- *   │  Densitate: [Minimal][Simplu][Bogat]│   density chip (single row)
+ *   │  Densitate: [Esențial][Standard][Complet]│ density chip
  *   │  controlează cât conținut afișăm    │
  *   ├─────────────────────────────────────┤
  *   │  ●  anaf.ro                         │   current-tab status
@@ -24,9 +24,8 @@
  *
  * State surfaces:
  *   - `extensionEnabled` (chrome.storage.local, default true) — primary
- *     toggle. Drives the content script's host display via
- *     `showOriginal = !extensionEnabled` (back-compat with the existing
- *     content-script storage listener).
+ *     toggle. v0.3 swaps between ONEGOV body content and the original body
+ *     content while keeping a sticky activation bar.
  *   - `uiDensity` (chrome.storage.local, default 'simplu') — content script
  *     reads this at mount + on storage change, re-rendering the App.
  *
@@ -38,7 +37,7 @@
  *   #4 No external network — only `chrome.runtime.sendMessage` and
  *      `chrome.storage.local`. The "GitHub" link is a regular `<a>` the user
  *      clicks; the popup itself never fetches.
- *   #5 Escape — the primary toggle hides the entire overlay. One click.
+ *   #5 Escape — the primary toggle restores the original page under the bar.
  */
 
 import { render } from 'preact';
@@ -58,15 +57,15 @@ const DENSITY_ORDER: ReadonlyArray<Density> = ['minimal', 'simplu', 'bogat'];
 const DEFAULT_DENSITY: Density = 'simplu';
 
 const DENSITY_LABELS: Record<Density, string> = {
-  minimal: 'Minimal',
-  simplu: 'Simplu',
-  bogat: 'Bogat',
+  minimal: 'Esențial',
+  simplu: 'Standard',
+  bogat: 'Complet',
 };
 
 const DENSITY_HINTS: Record<Density, string> = {
-  minimal: 'doar esențialul',
+  minimal: 'interfață concentrată',
   simplu: 'echilibrat (recomandat)',
-  bogat: 'tot conținutul vizibil',
+  bogat: 'detalii extinse',
 };
 
 /**
@@ -256,6 +255,29 @@ function Popup() {
     };
   }, []);
 
+  useEffect(() => {
+    const listener = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string,
+    ): void => {
+      if (areaName !== 'local') return;
+      if (changes['uiDensity'] !== undefined) {
+        setDensity(coerceDensity(changes['uiDensity'].newValue));
+      }
+      if (changes['extensionEnabled'] !== undefined) {
+        setEnabled(changes['extensionEnabled'].newValue !== false);
+      }
+    };
+
+    chrome.storage.onChanged.addListener(listener);
+    return () => {
+      const event = chrome.storage.onChanged as {
+        removeListener?: (cb: typeof listener) => void;
+      };
+      event.removeListener?.(listener);
+    };
+  }, []);
+
   function pickDensity(next: Density) {
     setDensity(next);
     void chrome.storage.local.set({ uiDensity: next }).catch(() => {});
@@ -263,22 +285,19 @@ function Popup() {
 
   function toggleEnabled(next: boolean) {
     setEnabled(next);
-    // Write BOTH the new key and the legacy `showOriginal` key so the
-    // existing content-script listener flips host display without changes.
-    // `showOriginal` was framed backwards — true meant "hide overlay" — so we
-    // map enabled → !showOriginal here.
     void chrome.storage.local
-      .set({ extensionEnabled: next, showOriginal: !next })
+      .set({ extensionEnabled: next })
       .catch(() => {});
   }
 
   const manifestVersion = chrome.runtime.getManifest().version;
+  const uiActive = enabled;
 
   return (
     <main class="pop-shell">
       <Header />
       <PrimaryToggle on={enabled} onChange={toggleEnabled} />
-      <DensityChip current={density} onPick={pickDensity} />
+      {uiActive ? <DensityChip current={density} onPick={pickDensity} /> : null}
       <SiteStatus status={status} hostname={hostname} />
       <Footer version={manifestVersion} />
     </main>

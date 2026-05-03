@@ -24,13 +24,27 @@ describe('Accordion', () => {
   it('starts closed by default', () => {
     const root = mountInto();
     render(<Accordion items={items} />, root);
-    expect(root.querySelector('.onegov-accordion-item__panel')).toBeNull();
+    expect(root.querySelectorAll('.onegov-accordion-item__panel').length).toBe(2);
+    expect(root.querySelector('.onegov-accordion-item--open')).toBeNull();
+    expect(root.querySelector('.onegov-accordion-item__panel')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
   });
 
   it('opens defaultOpen items', () => {
     const root = mountInto();
     render(<Accordion items={items} defaultOpen={['a']} />, root);
-    expect(root.querySelector('.onegov-accordion-item__panel')?.textContent).toBe('aaa');
+    expect(root.querySelector('.onegov-accordion-item__panel--open')?.textContent).toBe('aaa');
+    expect(root.querySelector('.onegov-accordion-item__panel--open')?.getAttribute('aria-hidden')).toBe(
+      'false',
+    );
+  });
+
+  it('keeps only the first defaultOpen item in single mode', () => {
+    const root = mountInto();
+    render(<Accordion items={items} defaultOpen={['a', 'b']} />, root);
+    expect(root.querySelectorAll('.onegov-accordion-item--open').length).toBe(1);
+    expect(root.querySelector('.onegov-accordion-item--open')?.textContent).toContain('A');
   });
 
   it('clicking a trigger expands it', async () => {
@@ -56,6 +70,8 @@ describe('Accordion', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(root.querySelectorAll('.onegov-accordion-item--open').length).toBe(1);
+    expect(trig[0]?.getAttribute('aria-expanded')).toBe('false');
+    expect(trig[1]?.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('multiple-mode allows several open at once', async () => {

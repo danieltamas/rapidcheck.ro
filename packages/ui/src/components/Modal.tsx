@@ -24,6 +24,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 
 type Size = 'sm' | 'md' | 'lg' | 'full';
+type Tone = 'default' | 'danger' | 'error';
 
 interface Props {
   open: boolean;
@@ -36,6 +37,10 @@ interface Props {
   footer?: ComponentChildren;
   /** Disable backdrop-click dismissal (e.g. forced-confirmation flows). */
   noBackdropClose?: boolean;
+  /** Visual severity affordance for blocking/error dialogs. */
+  tone?: Tone;
+  /** Alias for tone="error" when callers already model an error boolean. */
+  error?: boolean;
   children: ComponentChildren;
   class?: string;
 }
@@ -51,6 +56,8 @@ export function Modal({
   closeLabel = 'Închide',
   footer,
   noBackdropClose,
+  tone = 'default',
+  error = false,
   children,
   class: className,
 }: Props) {
@@ -114,7 +121,9 @@ export function Modal({
   if (!open) return null;
 
   const titleId = title ? `onegov-modal-title-${(title || '').replace(/\s+/g, '-').slice(0, 24)}` : undefined;
+  const visualTone = error ? 'error' : tone;
   const classes = ['onegov-modal', `onegov-modal--${size}`];
+  if (visualTone !== 'default') classes.push(`onegov-modal--${visualTone}`);
   if (className) classes.push(className);
 
   return (
@@ -130,10 +139,16 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        data-tone={visualTone}
         tabIndex={-1}
       >
         {title || true ? (
           <header class="onegov-modal__header">
+            {visualTone !== 'default' ? (
+              <span class="onegov-modal__status" aria-hidden="true">
+                !
+              </span>
+            ) : null}
             {title ? (
               <h2 id={titleId} class="onegov-modal__title">
                 {title}

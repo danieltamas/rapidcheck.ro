@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "check": "tsc --build packages/core packages/ui packages/extension",
+    "check": "tsc --build packages/core packages/site-data packages/api-clients packages/ui packages/extension",
     "build": "bun run scripts/build-extension.ts",
     "dev": "ONEGOV_TARGET=popup vite build --watch --config packages/extension/vite.config.ts",
     "validate-packs": "bun run scripts/validate-packs.ts",
@@ -18,8 +18,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint packages scripts",
-    "test": "bun run test:core && bun run test:ui && bun run test:extension",
+    "test": "bun run test:core && bun run test:site-data && bun run test:api-clients && bun run test:ui && bun run test:extension",
     "test:core": "bun test packages/core",
+    "test:site-data": "bun test packages/site-data",
+    "test:api-clients": "bun test packages/api-clients",
     "test:ui": "bun test packages/ui",
     "test:extension": "bun test packages/extension"
   },

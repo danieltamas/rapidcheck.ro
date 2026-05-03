@@ -16,6 +16,10 @@
         "vite": "^5.4.8",
       },
     },
+    "packages/api-clients": {
+      "name": "@onegov/api-clients",
+      "version": "0.1.0",
+    },
     "packages/core": {
       "name": "@onegov/core",
       "version": "0.1.0",
@@ -32,9 +36,18 @@
       "name": "@onegov/extension",
       "version": "0.1.0",
       "dependencies": {
+        "@onegov/api-clients": "workspace:*",
         "@onegov/core": "workspace:*",
+        "@onegov/site-data": "workspace:*",
         "@onegov/ui": "workspace:*",
         "preact": "^10.24.2",
+      },
+    },
+    "packages/site-data": {
+      "name": "@onegov/site-data",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "^3.23.8",
       },
     },
     "packages/ui": {
@@ -123,9 +136,13 @@
 
     "@humanwhocodes/retry": ["@humanwhocodes/retry@0.4.3", "", {}, "sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ=="],
 
+    "@onegov/api-clients": ["@onegov/api-clients@workspace:packages/api-clients"],
+
     "@onegov/core": ["@onegov/core@workspace:packages/core"],
 
     "@onegov/extension": ["@onegov/extension@workspace:packages/extension"],
+
+    "@onegov/site-data": ["@onegov/site-data@workspace:packages/site-data"],
 
     "@onegov/ui": ["@onegov/ui@workspace:packages/ui"],
 

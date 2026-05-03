@@ -12,7 +12,9 @@
     "typecheck": "tsc --build"
   },
   "dependencies": {
+    "@onegov/api-clients": "workspace:*",
     "@onegov/core": "workspace:*",
+    "@onegov/site-data": "workspace:*",
     "@onegov/ui": "workspace:*",
     "preact": "^10.24.2"
   }

@@ -13,15 +13,20 @@
  */
 
 export const colors = {
-  primary: '#003b73',
-  primaryHover: '#1d4f9b',
-  primaryActive: '#002a5a',
-  primarySoft: '#e8eef6',
+  primary: '#1a4598',
+  primaryHover: '#153a82',
+  primaryActive: '#102d68',
+  primarySoft: '#e9eefb',
   primaryContrast: '#ffffff',
+  accent: '#ffcd00',
+  accentHover: '#ffd633',
+  accentActive: '#e8b900',
+  accentSoft: '#fff7cc',
+  accentContrast: '#0b1320',
   bg: '#ffffff',
-  surface: '#f7f9fc',
+  surface: '#f5f6fa',
   surfaceElevated: '#ffffff',
-  surfaceSunken: '#eef2f6',
+  surfaceSunken: '#eceff7',
   text: '#1a1a1a',
   textStrong: '#0b1320',
   muted: '#5b6b7d',
@@ -30,12 +35,12 @@ export const colors = {
   borderStrong: '#c0c8d2',
   overlay: 'rgba(15, 23, 42, 0.5)',
   overlayStrong: 'rgba(15, 23, 42, 0.7)',
-  link: '#003b73',
-  linkHover: '#1d4f9b',
+  link: '#1a4598',
+  linkHover: '#153a82',
   linkVisited: '#5b3a8a',
-  danger: '#b3261e',
-  dangerHover: '#8e1e18',
-  dangerSoft: '#fbeaea',
+  danger: '#c8102e',
+  dangerHover: '#9f0d25',
+  dangerSoft: '#fde8ec',
   success: '#1f7a3a',
   successHover: '#18602e',
   successSoft: '#e7f4ec',
@@ -174,7 +179,7 @@ export const zIndex = {
 } as const;
 
 export const focus = {
-  ringColor: '#1d4f9b',
+  ringColor: '#1a4598',
   ringWidth: '2px',
   offset: '2px',
 } as const;

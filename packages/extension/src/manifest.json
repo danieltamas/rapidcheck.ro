@@ -19,13 +19,8 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.anaf.ro/*"],
-      "js": ["content.js"],
-      "run_at": "document_start",
-      "all_frames": false
-    },
-    {
       "matches": [
+        "*://*.anaf.ro/*",
         "*://dgep.mai.gov.ro/*",
         "*://*.depabd.mai.gov.ro/*",
         "*://portal.just.ro/*",

@@ -22,3 +22,13 @@ declare module '*.svg?url' {
   const url: string;
   export default url;
 }
+
+declare module '*.jpg' {
+  const url: string;
+  export default url;
+}
+
+declare module '*.jpg?inline' {
+  const dataUri: string;
+  export default dataUri;
+}

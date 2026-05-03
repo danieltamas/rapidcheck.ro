@@ -31,7 +31,9 @@ interface Props {
 }
 
 export function Accordion({ items, multiple = false, defaultOpen = [], class: className }: Props) {
-  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set(defaultOpen));
+  const [open, setOpen] = useState<ReadonlySet<string>>(
+    () => new Set(multiple ? defaultOpen : defaultOpen.slice(0, 1)),
+  );
 
   const toggle = useCallback(
     (id: string) => {
@@ -66,6 +68,7 @@ export function Accordion({ items, multiple = false, defaultOpen = [], class: cl
   }
 
   function focusHeader(e: KeyboardEvent, idx: number) {
+    if (items.length === 0) return;
     const ix = (idx + items.length) % items.length;
     const target = e.currentTarget as HTMLElement;
     const list = target.closest('.onegov-accordion');
@@ -74,6 +77,7 @@ export function Accordion({ items, multiple = false, defaultOpen = [], class: cl
   }
 
   const classes = ['onegov-accordion'];
+  classes.push(multiple ? 'onegov-accordion--multiple' : 'onegov-accordion--single');
   if (className) classes.push(className);
 
   return (
@@ -86,14 +90,18 @@ export function Accordion({ items, multiple = false, defaultOpen = [], class: cl
           <div
             key={item.id}
             class={`onegov-accordion-item ${isOpen ? 'onegov-accordion-item--open' : ''}`}
+            data-state={isOpen ? 'open' : 'closed'}
           >
             <h3 style="margin:0;">
               <button
                 type="button"
                 id={triggerId}
-                class="onegov-accordion-item__trigger"
+                class={`onegov-accordion-item__trigger ${
+                  isOpen ? 'onegov-accordion-item__trigger--open' : ''
+                }`}
                 aria-expanded={isOpen}
                 aria-controls={panelId}
+                data-state={isOpen ? 'open' : 'closed'}
                 onClick={() => toggle(item.id)}
                 onKeyDown={(e) => handleKey(e, idx)}
               >
@@ -103,16 +111,22 @@ export function Accordion({ items, multiple = false, defaultOpen = [], class: cl
                 </span>
               </button>
             </h3>
-            {isOpen ? (
-              <div
-                id={panelId}
-                role="region"
-                aria-labelledby={triggerId}
-                class="onegov-accordion-item__panel"
-              >
+            <div
+              id={panelId}
+              role="region"
+              aria-labelledby={triggerId}
+              aria-hidden={!isOpen}
+              class={`onegov-accordion-item__panel ${
+                isOpen
+                  ? 'onegov-accordion-item__panel--open'
+                  : 'onegov-accordion-item__panel--closed'
+              }`}
+              data-state={isOpen ? 'open' : 'closed'}
+            >
+              <div class="onegov-accordion-item__panel-inner">
                 {item.content}
               </div>
-            ) : null}
+            </div>
           </div>
         );
       })}

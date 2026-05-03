@@ -3,7 +3,7 @@
  *
  * Mocks only the surfaces the content script touches:
  *   - `chrome.runtime.sendMessage` — the request/reply transport
- *   - `chrome.storage.local.get` — persona + showOriginal hydration
+ *   - `chrome.storage.local.get` — density + extensionEnabled hydration
  *   - `chrome.storage.onChanged.addListener` — re-render trigger
  *
  * The handler-fire helpers let tests synthesise both responses and
@@ -81,6 +81,10 @@ export function installChromeContentStub(
       onChanged: {
         addListener(cb: ChangeListener): void {
           storageListeners.push(cb);
+        },
+        removeListener(cb: ChangeListener): void {
+          const idx = storageListeners.indexOf(cb);
+          if (idx >= 0) storageListeners.splice(idx, 1);
         },
       },
     },
