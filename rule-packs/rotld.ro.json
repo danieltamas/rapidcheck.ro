@@ -1,0 +1,114 @@
+{
+  "$schema": "https://rapidcheck.ro/schemas/rule-pack-v1.json",
+  "domain": "rotld.ro",
+  "version": "0.1.0",
+  "routes": [
+    {
+      "_comment": "Homepage at /home/ (the bare /  root redirects to /home/). RoTLD is the .ro TLD registry, niche but every developer/lawyer/journalist hits it (per task spec). Bootstrap 3 site with bespoke .rt-* prefixed classes (.rt-navbar, .rt-nav, .rt-whois-input, .rt-navbar-brand) — these are stable, owned by the registry's own theme. Three primary widgets on the homepage: a hero h1, a 3-card service grid (Administrare Domenii / Formulare / Adrese IP), and the WHOIS lookup form. Selector source: live inspection of https://www.rotld.ro/home/ on 2026-05-02 via Playwright.",
+      "match": { "pattern": "^/(home/?)?$" },
+      "layout": "landing",
+      "extract": [
+        {
+          "_comment": "Hero title — the only h1 on the page, with class .highlight (bespoke RoTLD class).",
+          "id": "page-title",
+          "selector": "h1.highlight",
+          "type": "heading",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Welcome subtitle — first h3.highlight after the hero h1.",
+          "id": "welcome-subtitle",
+          "selector": "h3.highlight",
+          "type": "heading",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Site-wide nav — .rt-nav is the bespoke nav class. We collect the top-level <a> children only.",
+          "id": "primary-nav",
+          "selector": "ul.rt-nav > li > a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Brand link — .rt-navbar-brand is the logo anchor.",
+          "id": "brand-logo",
+          "selector": "a.rt-navbar-brand",
+          "type": "link",
+          "attrs": { "href": "href" }
+        },
+        {
+          "_comment": "WHOIS lookup form — the page's primary action. Posts GET to /whois. The input has class .rt-whois-input and name=\"domain\".",
+          "id": "whois-form",
+          "selector": "form[action=\"/whois\"]",
+          "type": "form",
+          "attrs": { "action": "action", "method": "method" }
+        },
+        {
+          "_comment": "WHOIS input field.",
+          "id": "whois-input",
+          "selector": "input.rt-whois-input",
+          "type": "form",
+          "attrs": { "name": "name", "placeholder": "placeholder", "type": "type" }
+        },
+        {
+          "_comment": "Service cards — the homepage 3-card grid (Administrare Domenii, Formulare, Adrese IP). Each is wrapped in <div class=\"col-xs-12 col-sm-12 col-md-4 text-center\"> with an <h3> inside.",
+          "id": "service-card-titles",
+          "selector": "div.col-md-4.text-center h3",
+          "type": "heading",
+          "multiple": true,
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Service-card 'Mai multe' anchors — every card ends with a 'Mai multe' link to its destination.",
+          "id": "service-card-links",
+          "selector": "div.col-md-4.text-center a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Cookie banner — the cookieconsent library's banner with class .cc-window. The replacement consent module proxies to .cc-btn.cc-dismiss.",
+          "id": "cookie-banner",
+          "selector": ".cc-window",
+          "type": "paragraph",
+          "attrs": { "text": "textContent" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "_comment": "Pensioner — RoTLD is technical by nature, but the pensioner overlay still shows the page-title, the WHOIS form (one input, one button), and the three service cards as one-tap-per-row tiles. Hide nav and cookie banner.",
+          "layout": "landing-simplified",
+          "hide": ["primary-nav", "cookie-banner"],
+          "emphasize": [
+            "page-title",
+            "welcome-subtitle",
+            "whois-form",
+            "whois-input",
+            "service-card-titles"
+          ]
+        },
+        "standard": {
+          "layout": "landing",
+          "emphasize": ["page-title", "whois-form", "whois-input", "service-card-titles"]
+        },
+        "pro": {
+          "_comment": "Pro persona (developer / sysadmin) — the WHOIS form and the deep-nav matter most. Surface all the nav items.",
+          "layout": "landing-dense",
+          "emphasize": [
+            "whois-form",
+            "whois-input",
+            "primary-nav",
+            "service-card-links",
+            "brand-logo"
+          ]
+        },
+        "journalist": {
+          "_comment": "Journalist — wants WHOIS for source verification, plus the service catalogue.",
+          "layout": "landing-investigative",
+          "emphasize": ["whois-form", "whois-input", "service-card-titles", "service-card-links"]
+        }
+      }
+    }
+  ]
+}

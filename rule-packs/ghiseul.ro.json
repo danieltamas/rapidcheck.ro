@@ -1,0 +1,247 @@
+{
+  "$schema": "https://rapidcheck.ro/schemas/rule-pack-v1.json",
+  "domain": "ghiseul.ro",
+  "version": "0.1.0",
+  "routes": [
+    {
+      "_comment": "Homepage at /ghiseul/public/. The highest-traffic Romanian gov site (per SITES_COVERAGE.md sec 3.1). Bootstrap 5 + custom CSS, served behind Cloudflare's managed challenge — direct curl returns the JS challenge HTML, so live inspection done via Playwright. Stable hooks: #home-main (page main), #navbar (top nav), #title_auth (hero block), #login_form, #login (auth form), #username/#passwordT/#passwordP (input ids), #nrUsers (counter), #divCookie (cookie banner). Two flow split per task spec: anonymous payment buttons in main vs account-based login form on the right. Selector source: live inspection of https://www.ghiseul.ro/ghiseul/public/ on 2026-05-02.",
+      "match": { "pattern": "^/ghiseul/public/?$" },
+      "layout": "landing",
+      "extract": [
+        {
+          "_comment": "Hero title — the main h1 inside #title_auth. The page has multiple empty <h1>s used for SEO scaffolding; we want the first non-empty one.",
+          "id": "hero-title",
+          "selector": "#title_auth h1",
+          "type": "heading",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Top navigation — nav.navbar holds the site-wide menu (Acasa, Institutii inrolate, Legislatie, Intrebari frecvente, Contact).",
+          "id": "primary-nav",
+          "selector": "nav.navbar #navbar a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Account-based login form — #login is the stable id. Renderer surfaces the form fields by id/name (kept untouched per invariant 2 — read-only in v0.1).",
+          "id": "login-form",
+          "selector": "#login",
+          "type": "form",
+          "attrs": { "action": "action", "method": "method" }
+        },
+        {
+          "_comment": "Login form: username input.",
+          "id": "login-username",
+          "selector": "#username",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name", "type": "type", "placeholder": "placeholder" }
+        },
+        {
+          "_comment": "Login form: PIN field (passwordT).",
+          "id": "login-pin",
+          "selector": "#passwordT",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name", "type": "type", "placeholder": "placeholder" }
+        },
+        {
+          "_comment": "Login form: password field (passwordP). Toggle eye icon controlled by #togglePassword.",
+          "id": "login-password",
+          "selector": "#passwordP",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name", "type": "type" }
+        },
+        {
+          "_comment": "Anonymous-flow CTAs — every primary action card uses class \"btn-link p-0\" inside #home-main and points to a /ghiseul/public/<flow> URL. Examples: solicită date de acces, plătește amenzi, plătește fără autentificare, taxă judiciară de timbru, contravaloare pașaport, permise auto, plăcuțe, parcare, asigurare locuinței.",
+          "id": "anonymous-cta-cards",
+          "selector": "#home-main a.btn-link",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Section headings — every CTA card group has an <h3>. There are 8 on the homepage (Solicitare date de acces, Plata amenzi, Plata fara autentificare, Rovinieta, Titluri de stat, Plata parcare, Pool-ul de Asigurare, etc.).",
+          "id": "service-section-titles",
+          "selector": "#home-main h3",
+          "type": "heading",
+          "multiple": true,
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Live counter — #nrUsers shows the current registered-user count. Useful for the journalist persona that surfaces ops metrics.",
+          "id": "user-counter",
+          "selector": "#nrUsers",
+          "type": "paragraph",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Cookie consent — #divCookie is the bespoke cookie banner. Rule pack does NOT render its own — the consent module proxies to source-page accept buttons (per CLAUDE.md, SITES_COVERAGE.md Appendix A).",
+          "id": "cookie-banner",
+          "selector": "#divCookie",
+          "type": "paragraph",
+          "attrs": { "text": "textContent" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "_comment": "Pensioner — anonymous flow only. The login form is overwhelming. Surface anonymous CTA cards as the primary tap targets.",
+          "layout": "landing-simplified",
+          "hide": [
+            "primary-nav",
+            "login-form",
+            "login-username",
+            "login-pin",
+            "login-password",
+            "user-counter"
+          ],
+          "emphasize": ["hero-title", "anonymous-cta-cards", "service-section-titles"]
+        },
+        "standard": {
+          "_comment": "Standard — both flows visible side by side. This is the default ghiseul.ro experience cleaned up.",
+          "layout": "landing",
+          "emphasize": ["hero-title", "anonymous-cta-cards", "login-form"]
+        },
+        "pro": {
+          "_comment": "Pro persona (accountant / repeat user) — account flow first. Login form front and centre, anonymous flow secondary.",
+          "layout": "landing-dense",
+          "emphasize": [
+            "login-form",
+            "login-username",
+            "login-pin",
+            "login-password",
+            "primary-nav",
+            "anonymous-cta-cards"
+          ]
+        },
+        "journalist": {
+          "_comment": "Journalist — show counter (ops metric), cards (service catalogue), titles. De-emphasize the login form.",
+          "layout": "landing-investigative",
+          "hide": ["login-form", "login-username", "login-pin", "login-password"],
+          "emphasize": ["user-counter", "service-section-titles", "anonymous-cta-cards"]
+        }
+      }
+    },
+    {
+      "_comment": "Anonymous payment flow at /ghiseul/public/taxe — the pay-without-an-account form. Backed by ASP-style form #formTaxe with stable input ids: #judet, #tip_institutie, #institutie, #tipPers, #labelNumeTaxa, #pv_serie, #pv_nr, #data, #dataComunicarii, #pvFile. Every visible field has a stable id from the developer (not framework-generated). Selector source: live inspection of https://www.ghiseul.ro/ghiseul/public/taxe on 2026-05-02 via Playwright.",
+      "match": { "pattern": "^/ghiseul/public/taxe" },
+      "layout": "payment-flow",
+      "extract": [
+        {
+          "_comment": "Page title — h1.page-title is the page heading (\"Plata fara autentificare\").",
+          "id": "page-title",
+          "selector": "h1.page-title",
+          "type": "heading",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Payment form root — #formTaxe is the stable form id, posts to /ghiseul/public/plata/plata-taxe.",
+          "id": "payment-form",
+          "selector": "#formTaxe",
+          "type": "form",
+          "attrs": { "action": "action", "method": "method" }
+        },
+        {
+          "_comment": "Region selector — #judet is the county dropdown.",
+          "id": "field-judet",
+          "selector": "#judet",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name" }
+        },
+        {
+          "_comment": "Institution-type selector — #tip_institutie filters institutions by category.",
+          "id": "field-tip-institutie",
+          "selector": "#tip_institutie",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name" }
+        },
+        {
+          "_comment": "Specific institution selector — #institutie is populated based on judet + tip_institutie.",
+          "id": "field-institutie",
+          "selector": "#institutie",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name" }
+        },
+        {
+          "_comment": "Person type — #tipPers (PF / PJ).",
+          "id": "field-tip-pers",
+          "selector": "#tipPers",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name" }
+        },
+        {
+          "_comment": "Tax/fine selection trigger — #alege-taxa opens a modal listing available tax types per institution.",
+          "id": "field-alege-taxa",
+          "selector": "#alege-taxa",
+          "type": "link",
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Fine details: process verbal serie + numar (only visible when paying a fine). Stable ids #pv_serie / #pv_nr.",
+          "id": "field-pv-serie",
+          "selector": "#pv_serie",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name", "placeholder": "placeholder" }
+        },
+        {
+          "_comment": "Fine details: process verbal numar.",
+          "id": "field-pv-nr",
+          "selector": "#pv_nr",
+          "type": "form",
+          "attrs": { "id": "id", "name": "name" }
+        },
+        {
+          "_comment": "Top navigation — same site-wide menu.",
+          "id": "primary-nav",
+          "selector": "nav.navbar #navbar a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "_comment": "Pensioner — strip nav, focus form. One field per visible row. Hide fine-detail fields unless they become relevant.",
+          "layout": "payment-flow-simplified",
+          "hide": ["primary-nav", "field-pv-serie", "field-pv-nr"],
+          "emphasize": [
+            "page-title",
+            "field-judet",
+            "field-tip-institutie",
+            "field-institutie",
+            "field-tip-pers",
+            "field-alege-taxa"
+          ]
+        },
+        "standard": {
+          "layout": "payment-flow",
+          "emphasize": [
+            "page-title",
+            "field-judet",
+            "field-tip-institutie",
+            "field-institutie",
+            "field-tip-pers",
+            "field-alege-taxa"
+          ]
+        },
+        "pro": {
+          "_comment": "Pro persona — dense form with all fields shown including fine details and primary nav.",
+          "layout": "payment-flow-dense",
+          "emphasize": [
+            "field-judet",
+            "field-tip-institutie",
+            "field-institutie",
+            "field-tip-pers",
+            "field-alege-taxa",
+            "field-pv-serie",
+            "field-pv-nr",
+            "primary-nav"
+          ]
+        },
+        "journalist": {
+          "layout": "payment-flow-investigative",
+          "emphasize": ["page-title", "field-institutie", "field-alege-taxa"]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RapidCheck.ro - verifică site-uri oficiale din România</title>
+    <meta
+      name="description"
+      content="RapidCheck.ro îți spune dacă un site este oficial și te avertizează înainte să trimiți date sensibile pe pagini riscante. Extensie Chrome open-source, fără telemetrie."
+    />
+    <meta
+      name="keywords"
+      content="RapidCheck, extensie Chrome România, anti phishing România, verificare domenii oficiale, ANAF phishing, CNP, CUI, ghiseul.ro, securitate online"
+    />
+    <meta name="author" content="Daniel Tamas" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://rapidcheck.ro/" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <meta property="og:site_name" content="RapidCheck.ro" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://rapidcheck.ro/" />
+    <meta property="og:title" content="RapidCheck.ro - verifică site-uri oficiale din România" />
+    <meta
+      property="og:description"
+      content="Află dacă un site este oficial și primește avertizări înainte să trimiți date sensibile. Open-source, fără telemetrie."
+    />
+    <meta property="og:image" content="https://rapidcheck.ro/rapidcheck.logo.color.svg" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="RapidCheck.ro - verifică site-uri oficiale din România" />
+    <meta
+      name="twitter:description"
+      content="Extensie Chrome open-source care îți spune dacă un site este oficial și te avertizează înainte să trimiți date sensibile."
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "RapidCheck.ro",
+        "applicationCategory": "BrowserApplication",
+        "operatingSystem": "Chrome desktop",
+        "description": "Extensie Chrome open-source care îți spune dacă un site este oficial și te avertizează înainte să trimiți date sensibile pe pagini riscante.",
+        "url": "https://rapidcheck.ro/",
+        "codeRepository": "https://github.com/danieltamas/rapidcheck.ro",
+        "license": "https://opensource.org/license/mit",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "RON"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Daniel Tamas",
+          "url": "https://danieltamas.com/"
+        }
+      }
+    </script>
+
+    <style>
+      :root {
+        color-scheme: light;
+        --brand: #3d00e0;
+        --brand-soft: #0077ff;
+        --brand-deep: #6700a0;
+        --brand-gradient: linear-gradient(135deg, #6700a0 0%, #2243df 46%, #0077ff 100%);
+        --ink: #111720;
+        --muted: #4f5b6c;
+        --subtle: #6b7888;
+        --line: #e4e8f7;
+        --line-strong: #bfc9ee;
+        --surface: #ffffff;
+        --wash: #f5f7ff;
+        --success: #0f8a4f;
+        --success-bg: #e9f6ee;
+        --danger: #c62828;
+        --danger-bg: #fdeded;
+        --neutral-bg: #eef1f4;
+        --wrap: 1120px;
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+        --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.08);
+        --shadow-lg: 0 28px 80px rgba(34, 67, 223, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: #ffffff;
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      img,
+      svg {
+        display: block;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: 12px;
+        left: 16px;
+        z-index: 50;
+        transform: translateY(-140%);
+        padding: 10px 14px;
+        border-radius: var(--radius-sm);
+        background: var(--ink);
+        color: #fff;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid rgba(228, 232, 247, 0.9);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(16px);
+      }
+
+      .nav {
+        width: min(var(--wrap), calc(100% - 40px));
+        min-height: 76px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+      }
+
+      .brand img {
+        width: 198px;
+        height: auto;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+      }
+
+      .nav-links a:hover {
+        color: var(--ink);
+      }
+
+      .nav-button {
+        padding: 9px 14px;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--brand);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .hero {
+        border-bottom: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(245, 247, 255, 0.8) 0%, #fff 64%),
+          linear-gradient(90deg, rgba(103, 0, 160, 0.06), rgba(0, 119, 255, 0.04));
+      }
+
+      .hero-inner {
+        width: min(var(--wrap), calc(100% - 40px));
+        min-height: calc(100svh - 76px);
+        margin: 0 auto;
+        padding: 72px 0 56px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 74px;
+        align-items: center;
+      }
+
+      .product-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 24px;
+        color: var(--brand);
+        font-size: 13px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .product-label::before {
+        content: '';
+        width: 36px;
+        height: 2px;
+        border-radius: 999px;
+        background: var(--brand-gradient);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin-bottom: 24px;
+        color: var(--ink);
+        font-size: clamp(46px, 7.6vw, 88px);
+        font-weight: 900;
+        letter-spacing: 0;
+        line-height: 0.98;
+      }
+
+      .lede {
+        max-width: 690px;
+        margin-bottom: 32px;
+        color: var(--muted);
+        font-size: clamp(18px, 2vw, 22px);
+        line-height: 1.45;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 12px 18px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: 15px;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .button-primary {
+        background: var(--brand-gradient);
+        color: #fff;
+        box-shadow: 0 14px 30px rgba(34, 67, 223, 0.18);
+      }
+
+      .button-secondary {
+        border-color: var(--line-strong);
+        background: #fff;
+        color: var(--ink);
+      }
+
+      .hero-facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        max-width: 690px;
+        margin-top: 48px;
+        padding-top: 26px;
+        border-top: 1px solid var(--line);
+      }
+
+      .fact strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--brand);
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .fact span {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .mock-frame {
+        width: 372px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at top left, rgba(0, 119, 255, 0.16), transparent 42%), #ffffff;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .mock-window {
+        width: 340px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: #fff;
+        box-shadow: var(--shadow-md);
+      }
+
+      .pop-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 20px 20px 16px;
+        background:
+          radial-gradient(circle at top left, rgba(0, 119, 255, 0.14), transparent 42%), #ffffff;
+      }
+
+      .pop-header img {
+        height: 32px;
+        width: auto;
+      }
+
+      .pop-header span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.25;
+      }
+
+      .pop-section {
+        padding: 16px 20px;
+        border-top: 1px solid var(--line);
+      }
+
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .toggle-meta {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .toggle-meta strong {
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      .toggle-meta span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.25;
+      }
+
+      .switch {
+        position: relative;
+        width: 48px;
+        height: 28px;
+        flex-shrink: 0;
+        border-radius: 999px;
+        background: var(--brand-gradient);
+      }
+
+      .switch::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .status-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 44px;
+        padding: 8px 12px;
+        border: 1px solid color-mix(in srgb, var(--success) 28%, var(--line));
+        border-radius: var(--radius-md);
+        background: var(--success-bg);
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent);
+      }
+
+      .status-copy {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+      }
+
+      .status-copy strong {
+        overflow: hidden;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 650;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status-copy span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .id-card {
+        position: relative;
+        margin-top: 12px;
+        overflow: hidden;
+        border-radius: var(--radius-lg);
+        background: #fff;
+        box-shadow:
+          0 1px 2px rgba(15, 23, 42, 0.04),
+          0 6px 20px rgba(34, 67, 223, 0.1);
+      }
+
+      .id-card-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 16px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-lg);
+        background:
+          linear-gradient(#fff, #fff) padding-box,
+          var(--brand-gradient) border-box;
+      }
+
+      .id-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        color: var(--brand-soft);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .id-card strong {
+        color: var(--ink);
+        font-size: 17px;
+        font-weight: 750;
+        line-height: 1.18;
+      }
+
+      .id-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .chip {
+        padding: 2px 8px;
+        border: 1px solid #bfd0e7;
+        border-radius: 999px;
+        background: #eef6ff;
+        color: #1565c0;
+        font-size: 11px;
+        font-weight: 750;
+      }
+
+      .domain {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .id-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+      }
+
+      .proof-button {
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        background: var(--brand-gradient);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .source-link {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 650;
+        text-decoration: none;
+      }
+
+      .resolver-label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .resolver-field {
+        position: relative;
+      }
+
+      .resolver-field::before {
+        content: '';
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        width: 12px;
+        height: 12px;
+        transform: translateY(-50%);
+        border: 2px solid var(--muted);
+        border-radius: 50%;
+      }
+
+      .resolver-field::after {
+        content: '';
+        position: absolute;
+        left: 25px;
+        top: 25px;
+        width: 7px;
+        height: 2px;
+        transform: rotate(45deg);
+        border-radius: 999px;
+        background: var(--muted);
+      }
+
+      .resolver-input {
+        width: 100%;
+        min-height: 40px;
+        padding: 0 12px 0 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-lg);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .resolver-result {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 42px;
+        margin-top: 12px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: var(--wash);
+      }
+
+      .resolver-result strong {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        font-size: 13px;
+        font-weight: 750;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .resolver-result span {
+        color: var(--brand-soft);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .feature-list {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .feature-list li + li {
+        margin-top: 8px;
+      }
+
+      .pop-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 20px;
+        border-top: 1px solid var(--line);
+        background: var(--wash);
+        color: var(--subtle);
+        font-size: 11px;
+      }
+
+      .section {
+        padding: 86px 0;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .section.alt {
+        background: #fbfcff;
+      }
+
+      .wrap {
+        width: min(var(--wrap), calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: 0.7fr 1fr;
+        gap: 64px;
+        align-items: start;
+        margin-bottom: 44px;
+      }
+
+      .kicker {
+        margin-bottom: 12px;
+        color: var(--brand);
+        font-size: 13px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin-bottom: 0;
+        color: var(--ink);
+        font-size: clamp(32px, 4.2vw, 56px);
+        font-weight: 850;
+        letter-spacing: 0;
+        line-height: 1.04;
+      }
+
+      .section-copy {
+        margin: 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.55;
+      }
+
+      .capability-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: #fff;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .capability {
+        padding: 28px;
+        border-right: 1px solid var(--line);
+      }
+
+      .capability:last-child {
+        border-right: 0;
+      }
+
+      .capability-number {
+        display: block;
+        margin-bottom: 34px;
+        color: var(--brand-soft);
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .capability h3 {
+        margin-bottom: 10px;
+        font-size: 22px;
+        line-height: 1.15;
+      }
+
+      .capability p {
+        margin-bottom: 0;
+        color: var(--muted);
+      }
+
+      .audit-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .audit-panel {
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: #fff;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .audit-panel h3 {
+        margin-bottom: 18px;
+        font-size: 24px;
+      }
+
+      .about-strip {
+        padding: 22px 0;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .about-strip__inner {
+        width: min(var(--wrap), calc(100% - 40px));
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .about-strip__copy {
+        margin: 0;
+      }
+
+      .about-strip__copy strong {
+        color: var(--ink);
+        font-weight: 750;
+      }
+
+      .about-strip__links {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 14px;
+        font-weight: 750;
+      }
+
+      .about-strip__links a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .step-card {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: #fff;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .step-card__number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        margin-bottom: 34px;
+        border-radius: 999px;
+        background: var(--brand-gradient);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .step-card h3 {
+        margin-bottom: 10px;
+        font-size: 19px;
+        line-height: 1.15;
+      }
+
+      .step-card p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .audience-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .audience-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 380px;
+        padding: 18px 20px 22px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background:
+          linear-gradient(#fff, #fff) padding-box,
+          linear-gradient(135deg, rgba(103, 0, 160, 0.18), rgba(0, 119, 255, 0.18)) border-box;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        transition:
+          transform 0.25s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .audience-card:hover {
+        transform: translateY(-3px);
+        box-shadow:
+          0 1px 2px rgba(15, 23, 42, 0.04),
+          0 18px 44px rgba(34, 67, 223, 0.13);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .audience-card {
+          transition: none;
+        }
+        .audience-card:hover {
+          transform: none;
+        }
+      }
+
+      .audience-card__visual {
+        position: relative;
+        width: 100%;
+        max-width: 320px;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto 20px;
+        overflow: hidden;
+        border-radius: 16px;
+        background: var(--wash);
+      }
+
+      .audience-card__visual::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        border: 1px solid rgba(15, 23, 42, 0.05);
+        pointer-events: none;
+      }
+
+      .audience-card__visual img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .audience-card h3 {
+        margin: 0 0 6px;
+        font-size: 20px;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+      }
+
+      .audience-card__meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding: 4px 10px 4px 8px;
+        border-radius: 999px;
+        background: var(--wash);
+        border: 1px solid var(--line);
+        color: var(--subtle);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+      }
+
+      .audience-card__meta::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--brand-gradient);
+      }
+
+      .audience-card p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .check-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .check-list li {
+        position: relative;
+        padding: 13px 0 13px 28px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      .check-list li:first-child {
+        border-top: 0;
+      }
+
+      .check-list li::before {
+        content: '';
+        position: absolute;
+        top: 18px;
+        left: 0;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+
+      .directory {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 40px;
+        align-items: start;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .metric {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: #fff;
+      }
+
+      .metric strong {
+        display: block;
+        color: var(--brand);
+        font-size: 28px;
+        line-height: 1;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .directory-list {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: #fff;
+        overflow: hidden;
+      }
+
+      .directory-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .directory-row:last-child {
+        border-bottom: 0;
+      }
+
+      .directory-row strong {
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .directory-row span {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .tag {
+        align-self: center;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: var(--wash);
+        color: var(--brand);
+        font-size: 11px;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .install {
+        display: grid;
+        grid-template-columns: 0.85fr 1.15fr;
+        gap: 44px;
+        align-items: center;
+        padding: 36px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: var(--shadow-md);
+      }
+
+      .install h2 {
+        margin-bottom: 16px;
+      }
+
+      .install p {
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .terminal {
+        overflow: hidden;
+        border-radius: var(--radius-lg);
+        background: #111720;
+        color: #eef4ff;
+      }
+
+      .terminal-bar {
+        display: flex;
+        gap: 7px;
+        padding: 13px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .terminal-bar i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #677386;
+      }
+
+      pre {
+        margin: 0;
+        padding: 18px;
+        overflow-x: auto;
+        font:
+          13px/1.65 'SFMono-Regular',
+          Consolas,
+          'Liberation Mono',
+          monospace;
+      }
+
+      .comment {
+        color: #92a0b4;
+      }
+
+      .footer {
+        padding: 38px 0;
+        background: #fff;
+      }
+
+      .footer-inner {
+        width: min(var(--wrap), calc(100% - 40px));
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 16px;
+        font-weight: 750;
+      }
+
+      .footer-links a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+
+      @media (max-width: 980px) {
+        .hero-inner,
+        .section-head,
+        .audit-layout,
+        .directory,
+        .install {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-inner {
+          gap: 48px;
+        }
+
+        .mock-frame {
+          width: min(372px, 100%);
+        }
+
+        .mock-window {
+          width: 100%;
+        }
+
+        .capability-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .steps,
+        .audience-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .capability {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .capability:last-child {
+          border-bottom: 0;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .nav,
+        .hero-inner,
+        .wrap,
+        .footer-inner {
+          width: min(var(--wrap), calc(100% - 28px));
+        }
+
+        .nav {
+          min-height: 68px;
+        }
+
+        .brand img {
+          width: 164px;
+        }
+
+        .nav-links a:not(.nav-button) {
+          display: none;
+        }
+
+        .hero-inner {
+          min-height: auto;
+          padding: 52px 0 42px;
+        }
+
+        h1 {
+          font-size: 44px;
+        }
+
+        .hero-facts,
+        .metrics,
+        .steps,
+        .audience-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .section {
+          padding: 64px 0;
+        }
+
+        .install {
+          padding: 24px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#continut">Sari la conținut</a>
+
+    <header class="topbar">
+      <nav class="nav" aria-label="Navigație principală">
+        <a class="brand" href="/" aria-label="RapidCheck.ro">
+          <img src="/rapidcheck.logo.color.svg" alt="RapidCheck.ro" width="198" height="26" />
+        </a>
+        <div class="nav-links">
+          <a href="#cum-functioneaza">Cum funcționează</a>
+          <a href="#pentru-cine">Pentru cine</a>
+          <a href="https://github.com/danieltamas/rapidcheck.ro">GitHub</a>
+          <a class="nav-button" href="#instalare">Instalează</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="continut">
+      <section class="hero">
+        <div class="hero-inner">
+          <div>
+            <p class="product-label">Extensie Chrome gratuită și open-source</p>
+            <h1>Nu trimite date pe site-uri false.</h1>
+            <p class="lede">
+              RapidCheck îți spune dacă un site este oficial. Dacă pagina pare falsă sau formularul
+              cere date sensibile, primești un avertisment înainte să continui.
+            </p>
+            <div class="actions">
+              <a class="button button-primary" href="#instalare">Instalează</a>
+              <a class="button button-secondary" href="https://github.com/danieltamas/rapidcheck.ro"
+                >Cod sursă</a
+              >
+            </div>
+            <div class="hero-facts" aria-label="Rezumat RapidCheck">
+              <div class="fact">
+                <strong>95</strong>
+                <span>instituții și companii</span>
+              </div>
+              <div class="fact">
+                <strong>100</strong>
+                <span>site-uri oficiale</span>
+              </div>
+              <div class="fact">
+                <strong>0</strong>
+                <span>conturi sau urmărire</span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="mock-frame" aria-label="Mockup fidel al popup-ului RapidCheck">
+            <div class="mock-window">
+              <div class="pop-header">
+                <img src="/rapidcheck.logo.color.svg" alt="RapidCheck.ro" />
+                <span>Verifică rapid site-uri, formulare și plăți online</span>
+              </div>
+
+              <section class="pop-section">
+                <div class="toggle-row">
+                  <div class="toggle-meta">
+                    <strong>Protecție RapidCheck</strong>
+                    <span>Avertizări anti-fraudă și verificări la trimiterea formularelor</span>
+                  </div>
+                  <span class="switch" aria-hidden="true"></span>
+                </div>
+              </section>
+
+              <section class="pop-section">
+                <div class="status-bar">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <div class="status-copy">
+                    <strong>www.anaf.ro</strong>
+                    <span>Site oficial verificat</span>
+                  </div>
+                </div>
+
+                <div class="id-card">
+                  <div class="id-card-inner">
+                    <span class="id-eyebrow">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="M9 12l2 2 4-4" />
+                      </svg>
+                      Identitate oficială
+                    </span>
+                    <strong>Agenția Națională de Administrare Fiscală</strong>
+                    <div class="id-meta">
+                      <span class="chip">Guvern</span>
+                      <span class="domain">anaf.ro</span>
+                    </div>
+                    <div class="id-actions">
+                      <a class="proof-button" href="#director">Pagina de verificare</a>
+                      <a class="source-link" href="#director">Sursa</a>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="pop-section">
+                <label class="resolver-label" for="mock-resolver">Caută link oficial</label>
+                <div class="resolver-field">
+                  <input
+                    id="mock-resolver"
+                    class="resolver-input"
+                    value="ANAF, BT, Vodafone, primaria iasi"
+                    readonly
+                  />
+                </div>
+                <div class="resolver-result">
+                  <strong>ANAF</strong>
+                  <span>anaf.ro</span>
+                </div>
+              </section>
+
+              <section class="pop-section">
+                <ul class="feature-list">
+                  <li>Verifică domenii oficiale din România</li>
+                  <li>Blochează domeniile care seamănă cu instituții reale</li>
+                  <li>Avertizează înainte ca formularele să trimită date sensibile</li>
+                </ul>
+              </section>
+
+              <footer class="pop-footer">
+                <span>RapidCheck.ro · v0.1.0</span>
+                <span>Website</span>
+              </footer>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="beneficii">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <p class="kicker">Cum ajută</p>
+              <h2>Trei lucruri simple, exact când ai nevoie.</h2>
+            </div>
+            <p class="section-copy">
+              Când plătești taxe, cauți o instituție sau completezi un formular, trebuie să știi
+              rapid dacă pagina este sigură. RapidCheck face verificarea în browser.
+            </p>
+          </div>
+
+          <div class="capability-grid">
+            <article class="capability">
+              <span class="capability-number">01</span>
+              <h3>Îți spune dacă site-ul este oficial</h3>
+              <p>
+                Vezi numele instituției sau companiei, domeniul corect și sursa folosită pentru
+                verificare.
+              </p>
+            </article>
+            <article class="capability">
+              <span class="capability-number">02</span>
+              <h3>Prinde adresele care seamănă prea mult</h3>
+              <p>
+                Dacă un domeniu imită ANAF, o bancă sau un serviciu public, extensia îl marchează ca
+                suspect.
+              </p>
+            </article>
+            <article class="capability">
+              <span class="capability-number">03</span>
+              <h3>Te oprește înainte să trimiți date sensibile</h3>
+              <p>
+                Primești un avertisment când un formular riscant cere CNP, CUI sau date de plată.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="cum-functioneaza">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <p class="kicker">Cum funcționează</p>
+              <h2>Instalezi extensia. Restul se întâmplă în browser.</h2>
+            </div>
+            <p class="section-copy">
+              RapidCheck nu schimbă felul în care folosești site-urile. Îți arată starea paginii și
+              intervine doar când există un risc clar.
+            </p>
+          </div>
+
+          <div class="steps">
+            <article class="step-card">
+              <span class="step-card__number">1</span>
+              <h3>Deschizi un site</h3>
+              <p>
+                Poate fi o instituție, o bancă, un serviciu public sau o pagină primită pe email.
+              </p>
+            </article>
+            <article class="step-card">
+              <span class="step-card__number">2</span>
+              <h3>RapidCheck verifică adresa</h3>
+              <p>Extensia caută domeniul în lista locală de site-uri oficiale.</p>
+            </article>
+            <article class="step-card">
+              <span class="step-card__number">3</span>
+              <h3>Vezi starea în popup</h3>
+              <p>Află dacă site-ul este oficial, necunoscut sau suspect.</p>
+            </article>
+            <article class="step-card">
+              <span class="step-card__number">4</span>
+              <h3>Primești avertisment la risc</h3>
+              <p>Dacă pagina cere date sensibile și pare riscantă, extensia te oprește înainte.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="pentru-cine">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <p class="kicker">Pentru cine</p>
+              <h2>Pentru oamenii care primesc linkuri riscante în fiecare zi.</h2>
+            </div>
+            <p class="section-copy">
+              Părinți, bunici, prieteni, copii, familie. Nu trebuie să știe cum funcționează
+              phishing-ul ca să fie protejați de el.
+            </p>
+          </div>
+
+          <div class="audience-grid">
+            <article class="audience-card">
+              <div class="audience-card__visual" aria-hidden="true">
+                <img src="assets/audiences/parents.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <span class="audience-card__meta">SMS · Email · WhatsApp</span>
+              <h3>Părinți</h3>
+              <p>
+                Când plătesc taxe, facturi sau intră pe site-uri primite prin SMS, email ori
+                WhatsApp.
+              </p>
+            </article>
+
+            <article class="audience-card">
+              <div class="audience-card__visual" aria-hidden="true">
+                <img src="assets/audiences/grandparents.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <span class="audience-card__meta">Cont blocat · Plată urgentă</span>
+              <h3>Bunici</h3>
+              <p>
+                Când apar mesaje cu “cont blocat”, “plată urgentă”, “ANAF” sau “actualizează
+                datele”.
+              </p>
+            </article>
+
+            <article class="audience-card">
+              <div class="audience-card__visual" aria-hidden="true">
+                <img src="assets/audiences/kids.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <span class="audience-card__meta">Chat · Jocuri · Social media</span>
+              <h3>Copii și adolescenți</h3>
+              <p>
+                Când dau click pe linkuri din chat, jocuri, social media sau pagini care cer date
+                personale.
+              </p>
+            </article>
+
+            <article class="audience-card">
+              <div class="audience-card__visual" aria-hidden="true">
+                <img src="assets/audiences/friends.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <span class="audience-card__meta">„e ok linkul ăsta?”</span>
+              <h3>Prieteni și familie</h3>
+              <p>
+                Pentru oamenii care îți trimit “e ok linkul ăsta?” după ce primesc o ofertă sau o
+                notificare suspectă.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="model">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <p class="kicker">Confidențialitate</p>
+              <h2>Datele tale nu pleacă spre RapidCheck.</h2>
+            </div>
+            <p class="section-copy">
+              Nu ai cont. Nu ești urmărit. Extensia verifică pagina în browser și lasă site-ul
+              original să funcționeze normal.
+            </p>
+          </div>
+
+          <div class="audit-layout">
+            <article class="audit-panel">
+              <h3>Ce face</h3>
+              <ul class="check-list">
+                <li>Verifică site-ul deschis.</li>
+                <li>Arată identitatea oficială în popup.</li>
+                <li>Avertizează pe adrese suspecte.</li>
+                <li>Te ajută să găsești linkul oficial.</li>
+              </ul>
+            </article>
+            <article class="audit-panel">
+              <h3>Ce nu face</h3>
+              <ul class="check-list">
+                <li>Nu îți mută traficul pe alt site.</li>
+                <li>Nu citește datele în timp ce tastezi.</li>
+                <li>Nu cere cont și nu te urmărește.</li>
+                <li>Nu schimbă site-ul oficial pe care îl folosești.</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="director">
+        <div class="wrap directory">
+          <div>
+            <p class="kicker">Director verificat</p>
+            <h2>Site-uri verificate din surse oficiale.</h2>
+            <p class="section-copy">
+              Directorul RapidCheck include instituții publice, bănci, telecom, utilități și
+              administrație locală. Lista este publică și poate fi verificată în cod.
+            </p>
+            <div class="metrics">
+              <div class="metric">
+                <strong>95</strong>
+                <span>entități</span>
+              </div>
+              <div class="metric">
+                <strong>100</strong>
+                <span>domenii</span>
+              </div>
+              <div class="metric">
+                <strong>MIT</strong>
+                <span>licență</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="directory-list">
+            <div class="directory-row">
+              <div>
+                <strong>ANAF</strong>
+                <span>anaf.ro · taxe, formulare, plăți</span>
+              </div>
+              <span class="tag">Guvern</span>
+            </div>
+            <div class="directory-row">
+              <div>
+                <strong>Ghiseul.ro</strong>
+                <span>ghiseul.ro · plăți publice online</span>
+              </div>
+              <span class="tag">Serviciu public</span>
+            </div>
+            <div class="directory-row">
+              <div>
+                <strong>BCR, BT, BRD, ING, Raiffeisen, CEC Bank</strong>
+                <span>domenii bancare cu risc mare de phishing</span>
+              </div>
+              <span class="tag">Bănci</span>
+            </div>
+            <div class="directory-row">
+              <div>
+                <strong>Primării și consilii județene</strong>
+                <span>domenii locale unde convențiile diferă mult</span>
+              </div>
+              <span class="tag">Local</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-strip" id="despre" aria-label="Despre autor">
+        <div class="about-strip__inner">
+          <p class="about-strip__copy">
+            <strong>Proiect personal construit de Daniel Tamas</strong> în Cluj-Napoca. Neafiliat cu
+            Guvernul României, ANAF, băncile sau instituțiile listate.
+          </p>
+          <div class="about-strip__links">
+            <a href="https://danieltamas.com">danieltamas.com</a>
+            <a href="https://github.com/danieltamas/rapidcheck.ro">GitHub</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="instalare">
+        <div class="wrap install">
+          <div>
+            <p class="kicker">Instalare</p>
+            <h2>Pre-release pentru Chrome desktop.</h2>
+            <p>
+              Până la publicarea în Chrome Web Store, extensia se încarcă local din sursă. Codul și
+              lista de site-uri sunt publice.
+            </p>
+            <div class="actions">
+              <a class="button button-primary" href="https://github.com/danieltamas/rapidcheck.ro"
+                >Deschide GitHub</a
+              >
+              <a
+                class="button button-secondary"
+                href="https://github.com/danieltamas/rapidcheck.ro/blob/main/SECURITY.md"
+                >Securitate</a
+              >
+            </div>
+          </div>
+
+          <div class="terminal" aria-label="Comenzi instalare dezvoltator">
+            <div class="terminal-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <pre><span class="comment"># clonează și construiește extensia</span>
+git clone git@github.com:danieltamas/rapidcheck.ro.git
+cd rapidcheck.ro
+bun install
+bun run build
+
+<span class="comment"># Chrome: chrome://extensions
+# Developer mode -> Load unpacked -> dist/extension</span></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>© 2026 RapidCheck.ro · MIT · construit în Cluj-Napoca</span>
+        <div class="footer-links">
+          <a href="https://github.com/danieltamas/rapidcheck.ro">GitHub</a>
+          <a href="https://github.com/danieltamas/rapidcheck.ro/blob/main/LICENSE">Licență</a>
+          <a href="https://github.com/danieltamas/rapidcheck.ro/blob/main/SECURITY.md"
+            >Securitate</a
+          >
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

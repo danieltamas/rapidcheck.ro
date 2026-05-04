@@ -1,0 +1,15 @@
+node_modules
+dist
+build
+out
+*.min.js
+*.min.css
+coverage
+.cache
+.vite
+.turbo
+bun.lockb
+bun.lock
+packages/*/dist
+packages/*/build
+graphify-out

@@ -1,0 +1,444 @@
+{
+  "version": "0.1.0",
+  "updatedAt": "2026-05-02",
+  "domains": [
+    {
+      "domain": "anaf.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.anaf.ro/anaf/internet/ANAF/contact"
+    },
+    {
+      "domain": "onrc.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.onrc.ro/index.php/ro/contact"
+    },
+    {
+      "domain": "gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://gov.ro/ro/guvernul/cabinetul-de-ministri"
+    },
+    {
+      "domain": "mfinante.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://mfinante.gov.ro/web/site/contact"
+    },
+    {
+      "domain": "cnp.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://cnp.ro/contact/"
+    },
+    {
+      "domain": "cnas.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://cnas.ro/contact/"
+    },
+    {
+      "domain": "data.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://data.gov.ro/about"
+    },
+    {
+      "domain": "monitoruloficial.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.monitoruloficial.ro/Contact.php"
+    },
+    {
+      "domain": "just.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.just.ro/contact/"
+    },
+    {
+      "domain": "ghiseul.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.ghiseul.ro/ghiseul/public/contact"
+    },
+    {
+      "domain": "edu.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.edu.ro/contact"
+    },
+    {
+      "domain": "ms.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.ms.ro/ro/contact/"
+    },
+    {
+      "domain": "mai.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.mai.gov.ro/contact-mai/"
+    },
+    {
+      "domain": "rotld.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.rotld.ro/about-rotld/"
+    },
+    {
+      "domain": "drpciv.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.drpciv.ro/contact"
+    },
+    {
+      "domain": "ancpi.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.ancpi.ro/contact/"
+    },
+    {
+      "domain": "anre.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.anre.ro/contact/"
+    },
+    {
+      "domain": "anpc.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://anpc.ro/contact/"
+    },
+    {
+      "domain": "ancom.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.ancom.ro/ro/cu-cine-comunic-1112"
+    },
+    {
+      "domain": "asfromania.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://asfromania.ro/ro/contact"
+    },
+    {
+      "domain": "bnr.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.bnr.ro/Contact-26.aspx"
+    },
+    {
+      "domain": "cnpp.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.cnpp.ro/contact"
+    },
+    {
+      "domain": "anpis.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://anpis.gov.ro/web/anpis-organizare/contact"
+    },
+    {
+      "domain": "insse.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://insse.ro/cms/ro/content/date-de-contact"
+    },
+    {
+      "domain": "mae.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.mae.ro/contact"
+    },
+    {
+      "domain": "mapn.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.mapn.ro/contact/"
+    },
+    {
+      "domain": "mmediu.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.mmediu.ro/contact"
+    },
+    {
+      "domain": "madr.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.madr.ro/contact.html"
+    },
+    {
+      "domain": "mmuncii.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://mmuncii.ro/j33/index.php/ro/contact"
+    },
+    {
+      "domain": "mdlpa.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.mdlpa.ro/pages/contact"
+    },
+    {
+      "domain": "cultura.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.cultura.ro/contact"
+    },
+    {
+      "domain": "mcid.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.mcid.gov.ro/contact/"
+    },
+    {
+      "domain": "economie.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://economie.gov.ro/contact/"
+    },
+    {
+      "domain": "consiliulconcurentei.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.consiliulconcurentei.ro/contact/"
+    },
+    {
+      "domain": "dataprotection.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.dataprotection.ro/?page=contact&lang=ro"
+    },
+    {
+      "domain": "ansvsa.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.ansvsa.ro/contact/"
+    },
+    {
+      "domain": "cdep.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.cdep.ro/pls/dic/site2015.page?id=121"
+    },
+    {
+      "domain": "senat.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.senat.ro/Contact.aspx"
+    },
+    {
+      "domain": "bec.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.bec.ro/contact-2/"
+    },
+    {
+      "domain": "roaep.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.roaep.ro/prezentare/contact/"
+    },
+    {
+      "domain": "iccj.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.scj.ro/1093/Contact"
+    },
+    {
+      "domain": "ccr.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.ccr.ro/contact/"
+    },
+    {
+      "domain": "csm1909.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.csm1909.ro/13/contact"
+    },
+    {
+      "domain": "mpublic.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.mpublic.ro/ro/content/contact-3"
+    },
+    {
+      "domain": "diicot.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.diicot.ro/contact"
+    },
+    {
+      "domain": "politiaromana.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://politiaromana.ro/ro/contact"
+    },
+    {
+      "domain": "politiadefrontiera.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.politiadefrontiera.ro/ro/main/pg-contact-19.html"
+    },
+    {
+      "domain": "igsu.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.igsu.ro/Contact"
+    },
+    {
+      "domain": "vama.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.vama.ro/ro/contact"
+    },
+    {
+      "domain": "fonduri-ue.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.fonduri-ue.ro/contact"
+    },
+    {
+      "domain": "pnrr.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://mfe.gov.ro/contact/"
+    },
+    {
+      "domain": "transparenta.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://transparenta.gov.ro/contact"
+    },
+    {
+      "domain": "fara-hartie.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://fara-hartie.gov.ro/about"
+    },
+    {
+      "domain": "identitate.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://identitate.gov.ro/"
+    },
+    {
+      "domain": "sgg.gov.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://sgg.gov.ro/1/contact/"
+    },
+    {
+      "domain": "anof.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.anofm.ro/contact-us/"
+    },
+    {
+      "domain": "anofm.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.anofm.ro/contact-us/"
+    },
+    {
+      "domain": "rar.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.rar.ro/?page_id=23"
+    },
+    {
+      "domain": "cnadnr.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.cnadnr.ro/ro/contact"
+    },
+    {
+      "domain": "arr.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://arr.ro/contact/"
+    },
+    {
+      "domain": "cfr.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.cfr.ro/index.php/contact"
+    },
+    {
+      "domain": "cfrcalatori.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.cfrcalatori.ro/contact/"
+    },
+    {
+      "domain": "itmcluj.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.inspectiamuncii.ro/contact-itm-uri"
+    },
+    {
+      "domain": "inspectiamuncii.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.inspectiamuncii.ro/contact"
+    },
+    {
+      "domain": "itmbucuresti.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.inspectiamuncii.ro/contact-itm-uri"
+    },
+    {
+      "domain": "itmarad.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.inspectiamuncii.ro/contact-itm-uri"
+    },
+    {
+      "domain": "itmiasi.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.inspectiamuncii.ro/contact-itm-uri"
+    },
+    {
+      "domain": "pmb.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.pmb.ro/index.php/contact"
+    },
+    {
+      "domain": "primariaclujnapoca.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://primariaclujnapoca.ro/contact/"
+    },
+    {
+      "domain": "primariatm.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.primariatm.ro/contact/"
+    },
+    {
+      "domain": "primaria-iasi.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.primaria-iasi.ro/portal/iasi/portal.nsf/contact"
+    },
+    {
+      "domain": "cjcluj.ro",
+      "category": "gov",
+      "addedAt": "2026-05-02",
+      "source": "https://www.cjcluj.ro/contact/"
+    },
+    {
+      "domain": "demoanaf.ro",
+      "category": "public-interest",
+      "addedAt": "2026-05-02",
+      "source": "https://demoanaf.ro/despre"
+    }
+  ]
+}

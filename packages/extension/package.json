@@ -1,0 +1,19 @@
+{
+  "name": "@rapidcheck/extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome MV3 extension shell — background service worker, content script, popup UI. The only package allowed to touch chrome.* / browser.*.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "bun test",
+    "typecheck": "tsc --build"
+  },
+  "dependencies": {
+    "@rapidcheck/core": "workspace:*",
+    "@rapidcheck/directory": "workspace:*",
+    "preact": "^10.24.2"
+  }
+}

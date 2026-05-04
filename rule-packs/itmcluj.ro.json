@@ -1,0 +1,71 @@
+{
+  "$schema": "https://rapidcheck.ro/schemas/rule-pack-v1.json",
+  "domain": "itmcluj.ro",
+  "version": "0.1.0",
+  "routes": [
+    {
+      "_comment": "Homepage — itmcluj.ro is the demo headliner per SITES_COVERAGE.md sec 3.7. The live page is a 2005-era zombie: tables-for-layout, <FONT> tags, <MARQUEE> in the H1, document.write sidebar via meniu.js, and the institution profile (name, address, phone, email, leadership) hidden inside a <TEXTAREA id=\"txtSource\"> that gets reflected into a child iframe. No stable IDs or [data-*] attributes on the page, so selectors here are necessarily structural and target the page's unique anchors. Selector source: direct fetch of http://www.itmcluj.ro/ on 2026-05-02 (29KB, windows-1250 encoded). All four personas must produce visibly different output (task spec) — pensioner strips noise to a single column, pro shows full announcement metadata, journalist surfaces heritage markers and contact data.",
+      "match": { "pattern": "^/$" },
+      "layout": "landing",
+      "extract": [
+        {
+          "_comment": "Page title — the only <H1> on the page wraps a <MARQUEE> with the institution name (\"Inspectoratul Teritorial de Munca Cluj\"). Reading textContent strips the <MARQUEE> wrapper and yields just the name.",
+          "id": "page-title",
+          "selector": "h1",
+          "type": "heading",
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Announcements list — every announcement is a <p align=\"center\"> containing a single <a href=\"...pdf\">. There is no class hook, but the structural pattern is unique: only announcements use this exact shape. We select by descendant anchor.",
+          "id": "announcement-links",
+          "selector": "p[align=\"center\"] a[href$=\".pdf\"]",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Sidebar nav — meniu.js writes a <TABLE> of dark-grey <TD> cells, each containing one navigation <a>. After document.write executes, every sidebar link sits inside a td[bgcolor=\"#C0C0C0\"]. This selector hits all of them.",
+          "id": "sidebar-nav",
+          "selector": "td[bgcolor=\"#C0C0C0\"] a",
+          "type": "link",
+          "multiple": true,
+          "attrs": { "text": "textContent", "href": "href" }
+        },
+        {
+          "_comment": "Telephone numbers and contact list — the page footer block (after announcements) lists phones inside a <UL type=\"square\"> nested in a <FONT>. We match the wrapper UL.",
+          "id": "phone-numbers",
+          "selector": "ul[type=\"square\"]",
+          "type": "list",
+          "multiple": true,
+          "attrs": { "text": "textContent" }
+        },
+        {
+          "_comment": "Heritage marker — the institution sigla (siglaITM.JPG) injected by meniu.js into the sidebar. We surface it for the journalist persona because the 2005 timestamp embedded in the file is itself the story.",
+          "id": "heritage-marker",
+          "selector": "img[src=\"siglaITM.JPG\"]",
+          "type": "image",
+          "attrs": { "src": "src", "alt": "alt" }
+        }
+      ],
+      "personas": {
+        "pensioner": {
+          "layout": "landing-simplified",
+          "hide": ["heritage-marker", "sidebar-nav", "phone-numbers"],
+          "emphasize": ["page-title", "announcement-links"]
+        },
+        "standard": {
+          "layout": "landing",
+          "emphasize": ["page-title", "announcement-links"]
+        },
+        "pro": {
+          "layout": "landing-dense",
+          "emphasize": ["sidebar-nav", "announcement-links", "phone-numbers"]
+        },
+        "journalist": {
+          "layout": "landing-investigative",
+          "emphasize": ["heritage-marker", "phone-numbers", "announcement-links"]
+        }
+      }
+    }
+  ]
+}

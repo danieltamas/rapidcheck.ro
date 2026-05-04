@@ -1,0 +1,44 @@
+{
+  "name": "rapidcheck.ro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RapidCheck.ro browser extension for Romanian anti-phishing, official-domain checks, and sensitive-data guards.",
+  "license": "MIT",
+  "author": "Daniel Tamas <hello@danieltamas.com>",
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/directory",
+    "packages/extension"
+  ],
+  "scripts": {
+    "check": "tsc --build packages/core packages/directory packages/extension",
+    "build": "bun run scripts/build-extension.ts",
+    "dev": "RAPIDCHECK_TARGET=popup vite build --watch --config packages/extension/vite.config.ts",
+    "validate-packs": "bun run scripts/validate-packs.ts",
+    "gen-icons": "bun run scripts/gen-icons.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint packages scripts",
+    "test": "bun run test:core && bun run test:directory && bun run test:extension",
+    "test:core": "bun test packages/core",
+    "test:directory": "bun test packages/directory",
+    "test:extension": "bun test packages/extension"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^20.9.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/chrome": "^0.0.270",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "@typescript-eslint/parser": "^8.8.0",
+    "eslint": "^9.12.0",
+    "happy-dom": "^20.9.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8"
+  },
+  "engines": {
+    "bun": ">=1.2.0",
+    "node": ">=24.0.0"
+  }
+}
