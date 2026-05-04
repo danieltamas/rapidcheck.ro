@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Politica de confidențialitate — RapidCheck.ro</title>
+    <meta
+      name="description"
+      content="RapidCheck.ro nu colectează date. Fără telemetrie, fără analytics, fără servere. Verificarea domeniilor se întâmplă 100% în browser-ul tău."
+    />
+    <meta name="author" content="Daniel Tamas" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://rapidcheck.ro/privacy" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <meta property="og:site_name" content="RapidCheck.ro" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://rapidcheck.ro/privacy" />
+    <meta property="og:title" content="Politica de confidențialitate — RapidCheck.ro" />
+    <meta
+      property="og:description"
+      content="Nu colectăm nimic. Nu trimitem nimic. Tot codul este open-source."
+    />
+
+    <style>
+      :root {
+        color-scheme: light;
+        --brand: #3d00e0;
+        --brand-soft: #0077ff;
+        --brand-deep: #6700a0;
+        --brand-gradient: linear-gradient(135deg, #6700a0 0%, #2243df 46%, #0077ff 100%);
+        --ink: #111720;
+        --muted: #4f5b6c;
+        --subtle: #6b7888;
+        --line: #e4e8f7;
+        --surface: #ffffff;
+        --wash: #f5f7ff;
+        --success: #0f8a4f;
+        --success-bg: #e9f6ee;
+        --wrap: 760px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: #ffffff;
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: var(--brand);
+      }
+
+      img,
+      svg {
+        display: block;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: saturate(140%) blur(8px);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 64px;
+      }
+
+      .nav a {
+        color: var(--ink);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 22px;
+        align-items: center;
+      }
+
+      main {
+        width: min(var(--wrap), calc(100% - 40px));
+        margin: 0 auto;
+        padding: 56px 0 96px;
+      }
+
+      .kicker {
+        margin: 0 0 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--brand-deep);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(32px, 4.6vw, 44px);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+
+      .updated {
+        margin: 0 0 32px;
+        color: var(--subtle);
+        font-size: 14px;
+      }
+
+      h2 {
+        margin: 40px 0 12px;
+        font-size: 22px;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+      }
+
+      h3 {
+        margin: 24px 0 8px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0 0 14px;
+        color: var(--muted);
+      }
+
+      ul {
+        margin: 0 0 14px;
+        padding-left: 22px;
+        color: var(--muted);
+      }
+
+      ul li {
+        margin-bottom: 6px;
+      }
+
+      strong {
+        color: var(--ink);
+      }
+
+      code {
+        font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 0.92em;
+        padding: 1px 6px;
+        background: var(--wash);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+
+      .tldr {
+        margin: 12px 0 28px;
+        padding: 18px 22px;
+        background: var(--success-bg);
+        border: 1px solid #c7e8d0;
+        border-radius: var(--radius-lg);
+      }
+
+      .tldr ul {
+        margin: 8px 0 0;
+        color: #1f5132;
+      }
+
+      .tldr ul li {
+        color: #1f5132;
+      }
+
+      .lang-divider {
+        margin: 80px 0 0;
+        border: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .footer {
+        padding: 32px 0;
+        background: #fff;
+        border-top: 1px solid var(--line);
+      }
+
+      .footer-inner {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 16px;
+        font-weight: 700;
+      }
+
+      .footer-links a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="topbar">
+      <nav class="nav" aria-label="Navigație principală">
+        <a class="brand" href="/" aria-label="RapidCheck.ro">
+          <img src="/rapidcheck.logo.color.svg" alt="RapidCheck.ro" width="180" height="24" />
+        </a>
+        <div class="nav-links">
+          <a href="/">Acasă</a>
+          <a href="https://github.com/danieltamas/rapidcheck.ro">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <p class="kicker">Confidențialitate</p>
+      <h1>Politica de confidențialitate</h1>
+      <p class="updated">Ultima actualizare: 4 mai 2026</p>
+
+      <div class="tldr">
+        <strong>Pe scurt</strong>
+        <ul>
+          <li>Nu colectăm nimic.</li>
+          <li>Nu trimitem nimic spre serverele noastre — pentru că nu avem servere.</li>
+          <li>Fără analytics, fără telemetrie, fără cookies, fără urmărire publicitară.</li>
+          <li>
+            Tot codul este open-source (licență MIT) la
+            <a href="https://github.com/danieltamas/rapidcheck.ro">github.com/danieltamas/rapidcheck.ro</a>.
+          </li>
+        </ul>
+      </div>
+
+      <h2>Cine suntem</h2>
+      <p>
+        RapidCheck.ro este o extensie Chrome publicată de Daniel Tamas (Cluj-Napoca, România).
+        Operatorul de date — în măsura în care există — este persoana fizică Daniel Tamas, contact
+        <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a>.
+      </p>
+
+      <h2>Ce face extensia local, în browser-ul tău</h2>
+      <ul>
+        <li>
+          <strong>Verifică domenii.</strong> La fiecare pagină vizitată, extensia compară domeniul
+          curent cu o listă cu site-urile oficiale recunoscute. Comparația se întâmplă 100% pe
+          dispozitivul tău, fără trafic de rețea.
+        </li>
+        <li>
+          <strong>Salvează preferințele.</strong> Folosim <code>chrome.storage.local</code> pentru a
+          reține dacă extensia este activată sau dezactivată și ce densitate UI ai ales. Aceste
+          setări nu părăsesc niciodată dispozitivul tău.
+        </li>
+      </ul>
+
+      <h2>Singurele cereri de rețea</h2>
+      <ul>
+        <li>
+          <strong>La pornire</strong> — extensia descarcă lista publică de domenii verificate de la
+          <code>raw.githubusercontent.com/danieltamas/rapidcheck.ro/…</code>. Cererea conține doar
+          antetele standard ale oricărui browser (IP, user-agent) — la fel ca orice descărcare de
+          fișier static de la GitHub. Nu trimitem niciun identificator personalizat.
+        </li>
+        <li>
+          <strong>La cererea ta explicită</strong> — când folosești un instrument oficial (de exemplu
+          verificarea unui CUI prin ANAF), extensia apelează direct API-ul public al instituției
+          respective (ex: <code>webservicesp.anaf.ro</code>). Apelul include doar datele pe care le-ai
+          introdus în formular și se oprește imediat ce ai răspunsul.
+        </li>
+      </ul>
+
+      <h2>Ce NU face extensia</h2>
+      <ul>
+        <li>
+          Nu citește, nu copiază și nu trimite parolele, codurile CNP, datele cardului, numerele de
+          telefon, mesajele sau alte conținuturi din pagini.
+        </li>
+        <li>Nu accesează istoricul de navigare.</li>
+        <li>Nu setează cookies.</li>
+        <li>Nu rulează cod de la terți (fără <code>eval</code>, fără script-uri externe).</li>
+        <li>Nu vinde, nu închiriază și nu transferă date — pentru că nu există date de transferat.</li>
+      </ul>
+
+      <h2>Permisiunile cerute și motivul</h2>
+      <ul>
+        <li><code>storage</code> — salvează local preferințele tale (activat/dezactivat, densitate).</li>
+        <li>
+          <code>activeTab</code> — citește URL-ul tabului curent doar atunci când deschizi popup-ul,
+          ca să afișeze starea (verificat / nelistat / suspect).
+        </li>
+        <li>
+          <code>scripting</code> — injectează interfața de verificare în tab-ul curent, doar la
+          cererea ta.
+        </li>
+        <li>
+          <code>webNavigation</code> — actualizează iconița din toolbar pe măsură ce navighezi
+          (verde / roșu / gri).
+        </li>
+        <li>
+          <strong>Host permissions pe domenii .ro guvernamentale</strong> (anaf.ro, ghiseul.ro,
+          dgep.mai.gov.ro, portal.just.ro, rotld.ro, itmcluj.ro, depabd.mai.gov.ro) — pentru a livra
+          UX-ul optimizat pe acele portaluri. Active doar pe domeniile listate.
+        </li>
+        <li>
+          <strong>Host permission pe</strong> <code>raw.githubusercontent.com</code> — pentru a
+          descărca lista publică de domenii verificate.
+        </li>
+        <li>
+          <strong>Content script pe orice site</strong> (<code>http://*/*</code>,
+          <code>https://*/*</code>) — pentru a putea compara domeniul fiecărei pagini vizitate cu
+          lista verificată și a te avertiza la timp dacă pagina este suspectă. Verificarea este
+          locală și instantanee, fără trafic de rețea.
+        </li>
+      </ul>
+
+      <h2>Copii</h2>
+      <p>
+        Extensia nu colectează nicio dată, deci nu colectează nici de la copii. Funcționează identic
+        pentru toți utilizatorii, indiferent de vârstă.
+      </p>
+
+      <h2>Drepturile tale</h2>
+      <p>
+        Pentru că nu colectăm date personale, nu există date despre tine de șters, exportat sau
+        modificat. Dacă ai întrebări, scrie la
+        <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a>.
+      </p>
+
+      <h2>Modificări</h2>
+      <p>
+        Dacă politica se schimbă, vei vedea data de mai sus actualizată și un changelog public în
+        repository. Versiunile vechi rămân accesibile în istoricul Git.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Întrebări sau probleme? Scrie la
+        <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a> sau deschide un issue la
+        <a href="https://github.com/danieltamas/rapidcheck.ro/issues"
+          >github.com/danieltamas/rapidcheck.ro/issues</a
+        >.
+      </p>
+
+      <hr class="lang-divider" />
+
+      <section lang="en">
+        <p class="kicker">Privacy</p>
+        <h1>Privacy Policy</h1>
+        <p class="updated">Last updated: May 4, 2026</p>
+
+        <div class="tldr">
+          <strong>TL;DR</strong>
+          <ul>
+            <li>We collect nothing.</li>
+            <li>We send nothing to our servers — because we don't run any.</li>
+            <li>No analytics, no telemetry, no cookies, no ad tracking.</li>
+            <li>
+              The entire codebase is open-source (MIT) at
+              <a href="https://github.com/danieltamas/rapidcheck.ro">github.com/danieltamas/rapidcheck.ro</a>.
+            </li>
+          </ul>
+        </div>
+
+        <h2>Who we are</h2>
+        <p>
+          RapidCheck.ro is a Chrome extension published by Daniel Tamas (Cluj-Napoca, Romania). The
+          data controller — to the extent one exists — is the natural person Daniel Tamas, contact
+          <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a>.
+        </p>
+
+        <h2>What the extension does locally on your device</h2>
+        <ul>
+          <li>
+            <strong>Domain verification.</strong> On every page you visit, the extension compares
+            the current domain against a list of officially recognized sites. The comparison happens
+            entirely on your device — no network traffic involved.
+          </li>
+          <li>
+            <strong>Settings storage.</strong> We use <code>chrome.storage.local</code> to remember
+            whether you have the extension enabled and which UI density you picked. These settings
+            never leave your device.
+          </li>
+        </ul>
+
+        <h2>The only network requests</h2>
+        <ul>
+          <li>
+            <strong>On startup</strong> — the extension downloads the public verified-domains list
+            from <code>raw.githubusercontent.com/danieltamas/rapidcheck.ro/…</code>. This request
+            carries only the standard browser headers (IP, user-agent) — exactly like any static
+            file download from GitHub. We send no custom identifier.
+          </li>
+          <li>
+            <strong>On your explicit request</strong> — when you use an official tool (e.g. ANAF CUI
+            lookup), the extension calls the institution's documented public API directly (e.g.
+            <code>webservicesp.anaf.ro</code>). The call carries only the data you typed into the
+            form and stops as soon as you have your answer.
+          </li>
+        </ul>
+
+        <h2>What the extension does NOT do</h2>
+        <ul>
+          <li>
+            Does not read, copy, or transmit your passwords, national ID numbers (CNP), card data,
+            phone numbers, messages, or any other page content.
+          </li>
+          <li>Does not access your browsing history.</li>
+          <li>Does not set cookies.</li>
+          <li>
+            Does not run third-party code (no <code>eval</code>, no externally-loaded scripts).
+          </li>
+          <li>
+            Does not sell, rent, or transfer data — because there is no data to transfer.
+          </li>
+        </ul>
+
+        <h2>Permissions and why we ask for them</h2>
+        <ul>
+          <li><code>storage</code> — saves your settings locally (enabled/disabled, density).</li>
+          <li>
+            <code>activeTab</code> — reads the current tab's URL only when you open the popup, so
+            we can show the verification state.
+          </li>
+          <li>
+            <code>scripting</code> — injects the verification UI into the current tab when you
+            request it.
+          </li>
+          <li>
+            <code>webNavigation</code> — updates the toolbar icon as you navigate (green / red /
+            gray).
+          </li>
+          <li>
+            <strong>Host permissions on Romanian government domains</strong> (anaf.ro, ghiseul.ro,
+            dgep.mai.gov.ro, portal.just.ro, rotld.ro, itmcluj.ro, depabd.mai.gov.ro) — to deliver
+            the optimized UX layer on those portals. Active only on the listed domains.
+          </li>
+          <li>
+            <strong>Host permission for</strong> <code>raw.githubusercontent.com</code> — to
+            download the public verified-domains list.
+          </li>
+          <li>
+            <strong>Content script on any site</strong> (<code>http://*/*</code>,
+            <code>https://*/*</code>) — to compare every visited page's domain against the verified
+            list and warn you in time if the page is suspicious. The comparison is local and
+            instant, with no network traffic.
+          </li>
+        </ul>
+
+        <h2>Children</h2>
+        <p>
+          The extension collects no data, so it collects nothing from children either. It behaves
+          identically for all users, regardless of age.
+        </p>
+
+        <h2>Your rights</h2>
+        <p>
+          Because we collect no personal data, there is no data about you to delete, export, or
+          rectify. If you have questions, email
+          <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a>.
+        </p>
+
+        <h2>Changes</h2>
+        <p>
+          If this policy changes, the date above will be updated and a public changelog will be
+          posted in the repository. Older versions remain accessible in the Git history.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          Questions or concerns? Email
+          <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a> or open an issue at
+          <a href="https://github.com/danieltamas/rapidcheck.ro/issues"
+            >github.com/danieltamas/rapidcheck.ro/issues</a
+          >.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>© 2026 RapidCheck.ro · MIT · construit în Cluj-Napoca</span>
+        <div class="footer-links">
+          <a href="/">Acasă</a>
+          <a href="https://github.com/danieltamas/rapidcheck.ro">GitHub</a>
+          <a href="https://github.com/danieltamas/rapidcheck.ro/blob/main/LICENSE">Licență</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
