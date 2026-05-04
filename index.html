@@ -733,6 +733,44 @@
         font-size: 24px;
       }
 
+      .privacy-link-row {
+        margin: 24px 0 0;
+        text-align: center;
+      }
+
+      .privacy-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-radius: 999px;
+        background: var(--wash);
+        border: 1px solid var(--line);
+        color: var(--brand);
+        font-weight: 700;
+        font-size: 15px;
+        text-decoration: none;
+        transition:
+          background 0.2s ease,
+          border-color 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .privacy-link:hover {
+        background: #fff;
+        border-color: var(--line-strong);
+        transform: translateY(-1px);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .privacy-link {
+          transition: none;
+        }
+        .privacy-link:hover {
+          transform: none;
+        }
+      }
+
       .about-strip {
         padding: 22px 0;
         border-bottom: 1px solid var(--line);
@@ -1207,6 +1245,7 @@
         <div class="nav-links">
           <a href="#cum-functioneaza">Cum funcționează</a>
           <a href="#pentru-cine">Pentru cine</a>
+          <a href="/privacy">Confidențialitate</a>
           <a href="https://github.com/danieltamas/rapidcheck.ro">GitHub</a>
           <a class="nav-button" href="#instalare">Instalează</a>
         </div>
@@ -1515,6 +1554,12 @@
               </ul>
             </article>
           </div>
+
+          <p class="privacy-link-row">
+            <a class="privacy-link" href="/privacy"
+              >Citește politica de confidențialitate completă <span aria-hidden="true">→</span></a
+            >
+          </p>
         </div>
       </section>
 

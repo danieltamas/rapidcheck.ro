@@ -266,7 +266,7 @@
       <p>
         RapidCheck.ro este o extensie Chrome publicată de Daniel Tamas (Cluj-Napoca, România).
         Operatorul de date — în măsura în care există — este persoana fizică Daniel Tamas, contact
-        <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a>.
+        <a data-rot13="uryyb@qnavrygnznf.pbz" href="#">uryyb@qnavrygnznf.pbz</a>.
       </p>
 
       <h2>Ce face extensia local, în browser-ul tău</h2>
@@ -353,7 +353,7 @@
       <p>
         Pentru că nu colectăm date personale, nu există date despre tine de șters, exportat sau
         modificat. Dacă ai întrebări, scrie la
-        <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a>.
+        <a data-rot13="uryyb@qnavrygnznf.pbz" href="#">uryyb@qnavrygnznf.pbz</a>.
       </p>
 
       <h2>Modificări</h2>
@@ -365,7 +365,7 @@
       <h2>Contact</h2>
       <p>
         Întrebări sau probleme? Scrie la
-        <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a> sau deschide un issue la
+        <a data-rot13="uryyb@qnavrygnznf.pbz" href="#">uryyb@qnavrygnznf.pbz</a> sau deschide un issue la
         <a href="https://github.com/danieltamas/rapidcheck.ro/issues"
           >github.com/danieltamas/rapidcheck.ro/issues</a
         >.
@@ -395,7 +395,7 @@
         <p>
           RapidCheck.ro is a Chrome extension published by Daniel Tamas (Cluj-Napoca, Romania). The
           data controller — to the extent one exists — is the natural person Daniel Tamas, contact
-          <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a>.
+          <a data-rot13="uryyb@qnavrygnznf.pbz" href="#">uryyb@qnavrygnznf.pbz</a>.
         </p>
 
         <h2>What the extension does locally on your device</h2>
@@ -486,7 +486,7 @@
         <p>
           Because we collect no personal data, there is no data about you to delete, export, or
           rectify. If you have questions, email
-          <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a>.
+          <a data-rot13="uryyb@qnavrygnznf.pbz" href="#">uryyb@qnavrygnznf.pbz</a>.
         </p>
 
         <h2>Changes</h2>
@@ -498,7 +498,7 @@
         <h2>Contact</h2>
         <p>
           Questions or concerns? Email
-          <a href="mailto:hello@danieltamas.ro">hello@danieltamas.ro</a> or open an issue at
+          <a data-rot13="uryyb@qnavrygnznf.pbz" href="#">uryyb@qnavrygnznf.pbz</a> or open an issue at
           <a href="https://github.com/danieltamas/rapidcheck.ro/issues"
             >github.com/danieltamas/rapidcheck.ro/issues</a
           >.
@@ -516,5 +516,22 @@
         </div>
       </div>
     </footer>
+
+    <script>
+      (function () {
+        function rot13(s) {
+          return s.replace(/[A-Za-z]/g, function (c) {
+            var code = c.charCodeAt(0);
+            var base = code < 91 ? 65 : 97;
+            return String.fromCharCode(((code - base + 13) % 26) + base);
+          });
+        }
+        document.querySelectorAll('a[data-rot13]').forEach(function (a) {
+          var addr = rot13(a.getAttribute('data-rot13'));
+          a.setAttribute('href', 'mailto:' + addr);
+          a.textContent = addr;
+        });
+      })();
+    </script>
   </body>
 </html>
