@@ -115,6 +115,7 @@ jobs/
 .github/
 assets/*
 !assets/audiences/
+!assets/*.svg
 CLAUDE.md
 ONSTART.md
 CODING.md
