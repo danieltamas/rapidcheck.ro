@@ -928,31 +928,30 @@
       .audience-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
+        gap: 22px;
       }
 
       .audience-card {
         position: relative;
         display: flex;
         flex-direction: column;
-        min-height: 380px;
-        padding: 18px 20px 22px;
+        padding: 14px 14px 28px;
         border: 1px solid var(--line);
-        border-radius: 20px;
+        border-radius: 24px;
         background:
           linear-gradient(#fff, #fff) padding-box,
-          linear-gradient(135deg, rgba(103, 0, 160, 0.18), rgba(0, 119, 255, 0.18)) border-box;
+          linear-gradient(135deg, rgba(103, 0, 160, 0.16), rgba(0, 119, 255, 0.16)) border-box;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         transition:
-          transform 0.25s ease,
-          box-shadow 0.3s ease;
+          transform 0.3s ease,
+          box-shadow 0.35s ease;
       }
 
       .audience-card:hover {
-        transform: translateY(-3px);
+        transform: translateY(-4px);
         box-shadow:
           0 1px 2px rgba(15, 23, 42, 0.04),
-          0 18px 44px rgba(34, 67, 223, 0.13);
+          0 22px 50px rgba(34, 67, 223, 0.14);
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -967,21 +966,11 @@
       .audience-card__visual {
         position: relative;
         width: 100%;
-        max-width: 320px;
         aspect-ratio: 1 / 1;
-        margin: 0 auto 20px;
+        margin: 0 0 24px;
         overflow: hidden;
-        border-radius: 16px;
+        border-radius: 18px;
         background: var(--wash);
-      }
-
-      .audience-card__visual::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        border: 1px solid rgba(15, 23, 42, 0.05);
-        pointer-events: none;
       }
 
       .audience-card__visual img {
@@ -991,26 +980,20 @@
         object-fit: cover;
       }
 
-      .audience-card h3 {
-        margin: 0 0 6px;
-        font-size: 20px;
-        line-height: 1.2;
-        letter-spacing: -0.01em;
+      .audience-card__body {
+        padding: 0 10px;
       }
 
       .audience-card__meta {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        margin-bottom: 12px;
-        padding: 4px 10px 4px 8px;
-        border-radius: 999px;
-        background: var(--wash);
-        border: 1px solid var(--line);
-        color: var(--subtle);
+        margin: 0 0 12px;
+        color: var(--brand-deep);
         font-size: 12px;
-        font-weight: 500;
-        letter-spacing: 0.01em;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
       }
 
       .audience-card__meta::before {
@@ -1021,10 +1004,18 @@
         background: var(--brand-gradient);
       }
 
+      .audience-card h3 {
+        margin: 0 0 12px;
+        font-size: 28px;
+        line-height: 1.12;
+        letter-spacing: -0.022em;
+      }
+
       .audience-card p {
-        margin-bottom: 0;
+        margin: 0;
         color: var(--muted);
-        font-size: 15px;
+        font-size: 17px;
+        line-height: 1.55;
       }
 
       .check-list {
@@ -1566,48 +1557,56 @@
               <div class="audience-card__visual" aria-hidden="true">
                 <img src="assets/audiences/parents.png" alt="" loading="lazy" decoding="async" />
               </div>
-              <span class="audience-card__meta">SMS · Email · WhatsApp</span>
+              <div class="audience-card__body">
+                <span class="audience-card__meta">SMS · Email · WhatsApp</span>
               <h3>Părinți</h3>
               <p>
                 Când plătesc taxe, facturi sau intră pe site-uri primite prin SMS, email ori
                 WhatsApp.
               </p>
+              </div>
             </article>
 
             <article class="audience-card">
               <div class="audience-card__visual" aria-hidden="true">
                 <img src="assets/audiences/grandparents.png" alt="" loading="lazy" decoding="async" />
               </div>
-              <span class="audience-card__meta">Cont blocat · Plată urgentă</span>
+              <div class="audience-card__body">
+                <span class="audience-card__meta">Cont blocat · Plată urgentă</span>
               <h3>Bunici</h3>
               <p>
                 Când apar mesaje cu “cont blocat”, “plată urgentă”, “ANAF” sau “actualizează
                 datele”.
               </p>
+              </div>
             </article>
 
             <article class="audience-card">
               <div class="audience-card__visual" aria-hidden="true">
                 <img src="assets/audiences/kids.png" alt="" loading="lazy" decoding="async" />
               </div>
-              <span class="audience-card__meta">Chat · Jocuri · Social media</span>
+              <div class="audience-card__body">
+                <span class="audience-card__meta">Chat · Jocuri · Social media</span>
               <h3>Copii și adolescenți</h3>
               <p>
                 Când dau click pe linkuri din chat, jocuri, social media sau pagini care cer date
                 personale.
               </p>
+              </div>
             </article>
 
             <article class="audience-card">
               <div class="audience-card__visual" aria-hidden="true">
                 <img src="assets/audiences/friends.png" alt="" loading="lazy" decoding="async" />
               </div>
-              <span class="audience-card__meta">„e ok linkul ăsta?”</span>
+              <div class="audience-card__body">
+                <span class="audience-card__meta">„e ok linkul ăsta?”</span>
               <h3>Prieteni și familie</h3>
               <p>
                 Pentru oamenii care îți trimit “e ok linkul ăsta?” după ce primesc o ofertă sau o
                 notificare suspectă.
               </p>
+              </div>
             </article>
           </div>
         </div>
