@@ -1082,44 +1082,127 @@
         font-weight: 700;
       }
 
-      .directory-list {
+      .domain-browser {
         border: 1px solid var(--line);
         border-radius: var(--radius-lg);
         background: #fff;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
 
-      .directory-row {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 18px;
-        padding: 18px 20px;
+      .domain-browser__head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
         border-bottom: 1px solid var(--line);
       }
 
-      .directory-row:last-child {
+      .domain-search {
+        flex: 1;
+        border: none;
+        outline: none;
+        font: inherit;
+        font-size: 14px;
+        color: var(--ink);
+        background: transparent;
+      }
+
+      .domain-search::placeholder {
+        color: var(--subtle);
+      }
+
+      .domain-count {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--subtle);
+        white-space: nowrap;
+      }
+
+      .domain-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 360px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .domain-list::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .domain-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .domain-list::-webkit-scrollbar-thumb {
+        background: var(--line-strong);
+        border-radius: 99px;
+      }
+
+      .domain-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 14px;
+        padding: 11px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .domain-row:last-child {
         border-bottom: 0;
       }
 
-      .directory-row strong {
-        display: block;
-        margin-bottom: 2px;
+      .domain-name {
+        font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+        font-size: 13px;
+        color: var(--ink);
+        font-weight: 500;
       }
 
-      .directory-row span {
-        color: var(--muted);
+      .domain-row--state {
+        color: var(--subtle);
         font-size: 14px;
+        padding: 18px;
+        grid-column: 1 / -1;
+      }
+
+      .domain-browser__foot {
+        padding: 12px 18px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .domain-gh-link {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--brand);
+        text-decoration: none;
+        opacity: 0.75;
+        transition: opacity 0.15s;
+      }
+
+      .domain-gh-link:hover {
+        opacity: 1;
       }
 
       .tag {
         align-self: center;
-        padding: 5px 10px;
+        padding: 3px 8px;
         border-radius: 999px;
         background: var(--wash);
         color: var(--brand);
         font-size: 11px;
         font-weight: 850;
         white-space: nowrap;
+      }
+
+      .tag--public-interest {
+        background: #f0fdf4;
+        color: var(--success);
       }
 
       .install {
@@ -1663,12 +1746,6 @@
               Directorul RapidCheck include instituții publice, bănci, telecom, utilități și
               administrație locală. Lista este publică și poate fi verificată în cod.
             </p>
-            <a
-              class="button button-secondary"
-              href="https://github.com/danieltamas/rapidcheck.ro/blob/main/rule-packs/_verified-domains.json"
-              target="_blank"
-              rel="noopener"
-            >Vezi lista completă</a>
             <div class="metrics">
               <div class="metric">
                 <strong>95</strong>
@@ -1685,34 +1762,17 @@
             </div>
           </div>
 
-          <div class="directory-list">
-            <div class="directory-row">
-              <div>
-                <strong>ANAF</strong>
-                <span>anaf.ro · taxe, formulare, plăți</span>
-              </div>
-              <span class="tag">Guvern</span>
+          <div class="domain-browser" id="domain-browser" aria-label="Lista domeniilor verificate">
+            <div class="domain-browser__head">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex-shrink:0;color:var(--subtle)"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input class="domain-search" id="domain-search" type="search" placeholder="Caută domeniu…" aria-label="Caută în lista de domenii verificate" autocomplete="off" spellcheck="false" />
+              <span class="domain-count" id="domain-count" aria-live="polite"></span>
             </div>
-            <div class="directory-row">
-              <div>
-                <strong>Ghiseul.ro</strong>
-                <span>ghiseul.ro · plăți publice online</span>
-              </div>
-              <span class="tag">Serviciu public</span>
-            </div>
-            <div class="directory-row">
-              <div>
-                <strong>BCR, BT, BRD, ING, Raiffeisen, CEC Bank</strong>
-                <span>domenii bancare cu risc mare de phishing</span>
-              </div>
-              <span class="tag">Bănci</span>
-            </div>
-            <div class="directory-row">
-              <div>
-                <strong>Primării și consilii județene</strong>
-                <span>domenii locale unde convențiile diferă mult</span>
-              </div>
-              <span class="tag">Local</span>
+            <ul class="domain-list" id="domain-list" aria-live="polite">
+              <li class="domain-row domain-row--state">Se încarcă…</li>
+            </ul>
+            <div class="domain-browser__foot">
+              <a class="domain-gh-link" href="https://github.com/danieltamas/rapidcheck.ro/blob/main/rule-packs/_verified-domains.json" target="_blank" rel="noopener">Sursa pe GitHub →</a>
             </div>
           </div>
         </div>
@@ -1789,5 +1849,80 @@ bun run build
         </div>
       </div>
     </footer>
+  <script>
+    (function () {
+      var RAW =
+        'https://raw.githubusercontent.com/danieltamas/rapidcheck.ro/main/rule-packs/_verified-domains.json';
+      var LABELS = { gov: 'Guvern', 'public-interest': 'Interes public' };
+      var all = [];
+
+      function render(domains) {
+        var list = document.getElementById('domain-list');
+        if (!list) return;
+        if (!domains.length) {
+          list.innerHTML = '<li class="domain-row domain-row--state">Niciun rezultat.</li>';
+          return;
+        }
+        list.innerHTML = domains
+          .map(function (d) {
+            var cat = d.category || 'gov';
+            return (
+              '<li class="domain-row">' +
+              '<span class="domain-name">' +
+              d.domain +
+              '</span>' +
+              '<span class="tag tag--' +
+              cat +
+              '">' +
+              (LABELS[cat] || cat) +
+              '</span>' +
+              '</li>'
+            );
+          })
+          .join('');
+      }
+
+      function setCount(shown, total) {
+        var el = document.getElementById('domain-count');
+        if (el) el.textContent = shown === total ? total + ' domenii' : shown + ' / ' + total;
+      }
+
+      function init() {
+        var search = document.getElementById('domain-search');
+        if (!search) return;
+
+        fetch(RAW)
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
+            all = (data && data.domains) || [];
+            render(all);
+            setCount(all.length, all.length);
+          })
+          .catch(function () {
+            var list = document.getElementById('domain-list');
+            if (list)
+              list.innerHTML =
+                '<li class="domain-row domain-row--state">Nu s-a putut încărca lista. ' +
+                '<a href="https://github.com/danieltamas/rapidcheck.ro/blob/main/rule-packs/_verified-domains.json" target="_blank" rel="noopener">Vezi pe GitHub</a>' +
+                '</li>';
+          });
+
+        search.addEventListener('input', function () {
+          var q = this.value.trim().toLowerCase();
+          var filtered = q ? all.filter(function (d) { return d.domain.indexOf(q) !== -1; }) : all;
+          render(filtered);
+          setCount(filtered.length, all.length);
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
   </body>
 </html>
